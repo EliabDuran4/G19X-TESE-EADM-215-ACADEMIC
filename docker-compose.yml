@@ -1,5 +1,13 @@
 services:
 
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["ia-local"]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
   keycloak:
     image: quay.io/keycloak/keycloak:24.0
     container_name: keycloak
@@ -76,3 +84,4 @@ volumes:
   sqlserver_shard3_data:
   sqlserver_shard4_data:
   sqlserver_documental_data:
+  ollama_data:

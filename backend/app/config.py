@@ -17,6 +17,11 @@ class Settings(BaseSettings):
 
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-sonnet-5-5"
+    ai_provider: str = "claude"
+    ai_fallback_provider: str = ""
+    ollama_url: str = "http://localhost:11434"
+    ollama_model: str = "qwen2.5:3b"
+    ollama_timeout: float = 180.0
 
     class Config:
         env_file = ".env"
