@@ -715,40 +715,110 @@ docker compose logs --no-color > logs.txt
 
 [INSERTAR CAPTURA: logs del backend en PowerShell o en Docker Desktop]
 
-## 19. Integración Claude API
+## 19. Integración de IA (proveedor configurable)
 
-El backend invoca la Claude API para el análisis de documentos, utilizando la variable CLAUDE_API_KEY configurada en el entorno.
+El backend utiliza un proveedor de IA configurable para el análisis de documentos. La IA solo ofrece recomendaciones de apoyo: no aprueba, no rechaza ni cambia estados. Solo los roles revisor_documental y admin_documental pueden usarla. El sistema funciona con normalidad aunque la IA no esté disponible.
+
+| Variable | Descripción | Valor por defecto |
+|---|---|---|
+| `AI_PROVIDER` | Proveedor principal: `claude`, `ollama` o `none` | `claude` |
+| `AI_FALLBACK_PROVIDER` | Proveedor de respaldo si el principal falla (vacío = sin respaldo) | vacío |
+| `ANTHROPIC_API_KEY` | Clave de la API de Anthropic (proveedor `claude`) | vacío |
+| `ANTHROPIC_MODEL` | Modelo de Claude | `claude-sonnet-5-5` |
+| `OLLAMA_URL` | URL del servidor Ollama | `http://localhost:11434` |
+| `OLLAMA_MODEL` | Modelo local de Ollama | `qwen2.5:3b` |
+| `OLLAMA_TIMEOUT` | Tiempo máximo de espera, en segundos | `180` |
+
+Las variables están documentadas en `backend/.env.example`.
 
 ### 19.1 Configurar la clave de Claude API
 
 1. Iniciar sesión en la consola de Anthropic con la cuenta del titular del proyecto.
 2. Ir a la sección de claves de API y crear una nueva clave.
 3. Copiar la clave en el momento de su creación.
-4. Abrir el archivo `.env` y colocar la clave: `CLAUDE_API_KEY=<VALOR_CONFIGURADO>`.
+4. Abrir el archivo `backend/.env` y colocar la clave: `ANTHROPIC_API_KEY=<VALOR_CONFIGURADO>`.
 5. Guardar el archivo.
 6. **No** publicar la clave en el repositorio, capturas, mensajes ni documentos.
-7. Recrear el servicio del backend para aplicar la variable:
-
-```powershell
-docker compose up -d --force-recreate <NOMBRE_SERVICIO>
-```
+7. Reiniciar el backend para aplicar la variable.
 
 ### 19.2 Verificar que la clave está configurada (sin mostrarla)
 
-1. Ejecutar:
+1. Desde la carpeta `backend`, con el entorno virtual activo, ejecutar:
 
 ```powershell
-docker compose exec <NOMBRE_SERVICIO> printenv CLAUDE_API_KEY
+python -c "from app.config import settings; print(bool(settings.anthropic_api_key))"
 ```
 
-2. Confirmar únicamente que devuelve un valor (no vacío). No copiar ni compartir el resultado.
+2. Confirmar que devuelve `True`. No copiar ni compartir la clave.
 
 ### 19.3 Verificar el servicio de análisis mediante IA
 
 1. Iniciar sesión en el sistema con un rol que tenga acceso al análisis. [POR CONFIRMAR: ubicación exacta de la función de análisis mediante IA en la interfaz]
 2. Ejecutar el análisis sobre un documento de prueba.
-3. Confirmar que se obtiene un resultado.
-4. Si falla, revisar los logs del backend (19.6) y verificar que la clave sea válida y que exista conectividad a Internet.
+3. Confirmar que se obtiene un resultado con el aviso "ANÁLISIS GENERADO POR IA".
+4. Si falla, revisar la salida (logs) del backend y los códigos de la sección 19.5.
+
+### 19.4 IA local con Ollama (alternativa gratuita)
+
+Ollama permite ejecutar el análisis sin costo y sin enviar documentos a servicios externos. Es útil como respaldo o en entornos sin créditos de Claude.
+
+**Opción A (recomendada en Windows): instalación nativa**
+
+1. Instalar Ollama desde https://ollama.com/download.
+2. Abrir una terminal nueva y descargar el modelo:
+
+```powershell
+ollama pull qwen2.5:3b
+ollama list
+```
+
+3. Verificar el servicio:
+
+```powershell
+curl.exe http://localhost:11434
+```
+
+Debe responder `Ollama is running`.
+
+**Opción B: contenedor Docker (opcional)**
+
+El servicio `ollama` de `docker-compose.yml` solo arranca con el profile `ia-local`:
+
+```powershell
+docker compose --profile ia-local up -d ollama
+docker compose exec ollama ollama pull qwen2.5:3b
+```
+
+No debe ejecutarse junto con la opción A, porque ambas usan el puerto 11434. Si la descarga falla con el error `x509: certificate signed by unknown authority`, la red intercepta el HTTPS: usar la opción A o cambiar de red.
+
+**Activar Ollama** en `backend/.env`:
+
+```
+AI_PROVIDER=ollama
+```
+
+**Usar Ollama como respaldo de Claude:**
+
+```
+AI_PROVIDER=claude
+AI_FALLBACK_PROVIDER=ollama
+```
+
+**Consideraciones del proveedor local:**
+
+- Lee PDFs con texto mediante `pypdf` y analiza hasta 12 000 caracteres. Los PDFs escaneados y los archivos de otros formatos se analizan solo con nombre y categoría, y la respuesta lo indica.
+- Con un modelo pequeño, la respuesta es más lenta y menos precisa que con Claude, y puede tardar varios minutos según el equipo.
+
+### 19.5 Códigos de respuesta del servicio de IA
+
+| Código | Causa | Acción |
+|---|---|---|
+| 503 | IA desactivada (`none`), proveedor inválido o clave no configurada | Revisar `AI_PROVIDER` y `ANTHROPIC_API_KEY` |
+| 502 | Clave rechazada, saldo agotado, sin conexión o modelo local no instalado | Revisar la clave y el saldo, que Ollama esté activo y que el modelo esté descargado |
+| 504 | El modelo local tardó más del tiempo permitido | Aumentar `OLLAMA_TIMEOUT` o usar un modelo más pequeño |
+| 429 | Límite de uso de Claude alcanzado | Reintentar más tarde |
+
+Si el proveedor principal falla y hay respaldo configurado, el sistema usa el respaldo. Si ambos fallan, devuelve el error del principal.
 
 ## 20. Control de versiones Git/GitHub
 

@@ -106,9 +106,31 @@ backend y a los contenedores; no se ha implementado Grafana Loki.
 
 ## 11. Integración IA
 
-El backend se integra con la Claude API para realizar análisis de
-documentos mediante inteligencia artificial, como parte del flujo de
-revisión documental.
+El backend se integra con un proveedor de inteligencia artificial configurable para realizar análisis de documentos como apoyo al flujo de revisión documental. El módulo `services/ai_service.py` expone una única función de análisis y selecciona el proveedor según la configuración.
+
+### 11.1 Proveedores
+
+| Proveedor | Tipo | Uso |
+|---|---|---|
+| `claude` | API externa (Anthropic) | Principal. Lee el PDF directamente. Requiere `ANTHROPIC_API_KEY` |
+| `ollama` | Modelo local (gratuito) | Alternativa o respaldo. Extrae el texto del PDF con `pypdf` |
+| `none` | Desactivado | La IA no está disponible; el resto del sistema funciona |
+
+### 11.2 Flujo de la solicitud
+
+1. El revisor o administrador solicita el análisis de un documento.
+2. El backend valida el rol y selecciona el proveedor definido en `AI_PROVIDER`.
+3. El proveedor genera el análisis con un prompt y un formato de salida comunes.
+4. Si el proveedor principal falla y existe `AI_FALLBACK_PROVIDER`, se usa el respaldo.
+5. El resultado se devuelve con el aviso "ANÁLISIS GENERADO POR IA" y no modifica el estado del documento.
+
+### 11.3 Principios de diseño
+
+- La IA solo ofrece recomendaciones: no aprueba, no rechaza ni cambia estados.
+- El contenido del documento se trata como datos y nunca como instrucciones.
+- El sistema funciona sin IA configurada; los errores del proveedor se controlan y no afectan el flujo documental.
+- Cambiar de proveedor es una modificación de configuración y no requiere cambios de código.
+- Los errores y la latencia de las llamadas se pueden observar con la instrumentación existente de OpenTelemetry.
 
 ## 12. Arquitectura Docker
 
