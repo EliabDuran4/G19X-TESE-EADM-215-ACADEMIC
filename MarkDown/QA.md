@@ -33,6 +33,7 @@ Las pruebas QA cubren:
 - Grafana.
 - Ejecución local mediante Docker Compose.
 - Integración del servicio de IA.
+- Proveedor de IA configurable (Claude API, Ollama local o desactivado) y respaldo opcional.
 
 
 ## 3. Ambiente de pruebas
@@ -49,7 +50,7 @@ Las pruebas QA cubren:
 - **Collector:** OpenTelemetry Collector
 - **Métricas:** Prometheus
 - **Visualización:** Grafana
-- **IA:** Claude API
+- **IA:** Claude API (principal) y Ollama local con `qwen2.5:3b` (alternativa/respaldo)
 - **Rama probada:** `main`
 
 
@@ -67,6 +68,8 @@ Las pruebas QA cubren:
 | QA-08 | Persistencia de datos | La información permanece correctamente almacenada en SQL Server | Persistencia comprobada correctamente | **Aprobado** |
 | QA-09 | Reproducibilidad local | Los componentes pueden ejecutarse correctamente en el entorno local | Sistema iniciado y operado correctamente | **Aprobado** |
 | QA-10 | Servicio de IA | El servicio procesa correctamente la solicitud de análisis | Análisis realizado correctamente | **Aprobado** |
+| QA-11 | IA multi-proveedor (servicio) | El servicio selecciona el proveedor configurado, controla los errores y usa el respaldo | Comportamiento esperado en todos los escenarios | **Aprobado** |
+| QA-12 | IA desde la interfaz | El revisor y el admin usan la IA; el usuario no; el estado del documento no cambia | Comportamiento esperado | **Aprobado** |
 
 
 ## 5. Detalle de pruebas
@@ -184,14 +187,43 @@ Se comprobó la integración del servicio de inteligencia artificial y su capaci
 **Resultado:** Aprobado.
 
 
+### QA-11 — IA multi-proveedor (servicio)
+
+Se comprobó el servicio con los proveedores `claude`, `ollama` y `none`, mediante los siguientes escenarios:
+
+- IA desactivada.
+- Proveedor inválido.
+- Clave de Claude no configurada.
+- Ollama sin conexión.
+- Modelo local inexistente.
+- Análisis con PDF.
+- Análisis sin PDF, con aviso de análisis limitado.
+- Uso del proveedor de respaldo.
+
+**Resultado:** Aprobado.
+
+
+### QA-12 — IA desde la interfaz
+
+Se comprobó desde el frontend:
+
+- El revisor y el administrador obtienen el análisis con el aviso "ANÁLISIS GENERADO POR IA".
+- El usuario documental no tiene acceso a la función.
+- El estado del documento no cambia tras el análisis.
+- Los errores del proveedor se muestran con mensajes claros.
+- El flujo documental sin IA no se ve afectado.
+
+**Resultado:** Aprobado.
+
+
 ## 6. Resumen de resultados
 
 | Estado | Cantidad |
 |---|---:|
-| Aprobadas | 10 |
+| Aprobadas | 12 |
 | Fallidas | 0 |
 | Pendientes | 0 |
-| Total | 10 |
+| Total | 12 |
 
 **Porcentaje de aprobación:** 100 %
 
@@ -202,11 +234,15 @@ Durante el desarrollo se realizaron ajustes sobre funcionalidades, permisos y ar
 
 Las pruebas finales no presentaron incidencias bloqueantes que impidan el funcionamiento del MVP.
 
+Las pruebas QA-11 y QA-12, correspondientes al proveedor de IA configurable, tampoco presentaron incidencias bloqueantes. Durante su preparación, la descarga del modelo local mediante el contenedor Docker falló por un error de certificado TLS de la red (`x509: certificate signed by unknown authority`); se resolvió utilizando la instalación nativa de Ollama.
+
 
 ## 8. Conclusión
 
 Las pruebas QA realizadas permitieron validar el funcionamiento de las principales características de LegalTech, incluyendo autenticación, autorización por roles, gestión documental, flujo de revisión, persistencia y observabilidad.
 
-Los 10 casos de prueba definidos fueron ejecutados satisfactoriamente, obteniendo un 100 % de aprobación y sin detectar incidencias bloqueantes en la validación final.
+Los 12 casos de prueba definidos fueron ejecutados satisfactoriamente, obteniendo un 100 % de aprobación y sin detectar incidencias bloqueantes en la validación final.
+
+Asimismo, se validó el proveedor de IA configurable (Claude API, Ollama local o desactivado), su manejo controlado de errores y la no alteración del estado de los documentos.
 
 Con base en los resultados obtenidos, el MVP cumple con las funcionalidades evaluadas y se encuentra en condiciones de continuar con la documentación final, mantenimiento, capacitación, evaluación post-implementación y cierre técnico.
