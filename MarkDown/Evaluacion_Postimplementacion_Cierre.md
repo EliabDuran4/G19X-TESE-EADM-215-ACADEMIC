@@ -14,11 +14,11 @@ Evaluar el desempeño funcional y técnico del sistema LegalTech tras su impleme
 
 ## 3. Alcance
 
-Cubre la evaluación funcional, de roles y permisos, del flujo documental, de persistencia, seguridad, observabilidad, reproducibilidad local y del servicio de IA, con base en las pruebas QA-01 a QA-10 ya ejecutadas.
+Cubre la evaluación funcional, de roles y permisos, del flujo documental, de persistencia, seguridad, observabilidad, reproducibilidad local y del servicio de IA, con base en las pruebas QA-01 a QA-12 ya ejecutadas.
 
 ## 4. Metodología de evaluación
 
-La evaluación se basa en los resultados del ciclo de pruebas QA-01 a QA-10, ejecutado sobre el sistema desplegado localmente mediante Docker Compose, contrastando cada resultado con los requisitos funcionales y no funcionales definidos para el proyecto.
+La evaluación se basa en los resultados del ciclo de pruebas QA-01 a QA-12, ejecutado sobre el sistema desplegado localmente mediante Docker Compose, contrastando cada resultado con los requisitos funcionales y no funcionales definidos para el proyecto.
 
 ## 5. Criterios de evaluación
 
@@ -61,23 +61,33 @@ Se confirmó que el sistema completo puede desplegarse de forma reproducible med
 
 ## 13. Evaluación del servicio de IA
 
-Se validó el funcionamiento de la integración con la Claude API para el análisis de documentos dentro del flujo del sistema.
+Se validó el funcionamiento de la integración de IA para el análisis de documentos dentro del flujo del sistema (QA-10). Posteriormente se incorporó un proveedor de IA configurable (Claude API, Ollama local o desactivado, con respaldo opcional), validado mediante QA-11 y QA-12: manejo controlado de errores, análisis con y sin contenido del PDF, funcionamiento del respaldo, restricción por rol y no alteración del estado del documento.
+
+El sistema continúa operando cuando la IA no está disponible. El proveedor local se validó con el modelo `qwen2.5:3b`, cuya respuesta es más lenta y menos precisa que la de Claude.
+
+**Lecciones aprendidas:**
+
+- Desacoplar el proveedor de IA mediante configuración evita depender de un único servicio, de sus créditos o de su disponibilidad.
+- La IA debe limitarse a recomendaciones de apoyo, de modo que su falla no afecte el flujo documental.
+- La descarga de modelos locales mediante contenedores puede fallar en redes que interceptan el tráfico HTTPS; la instalación nativa de Ollama es una alternativa viable.
 
 ## 14. Resultados QA
 
 | Indicador | Resultado |
 |---|---|
-| Pruebas ejecutadas | QA-01 a QA-10 (10 pruebas) |
-| Pruebas aprobadas | 10 (100 %) |
+| Pruebas ejecutadas | QA-01 a QA-12 (12 pruebas) |
+| Pruebas aprobadas | 12 (100 %) |
 | Pruebas fallidas | 0 |
 | Pruebas pendientes | 0 |
 | Incidencias bloqueantes | 0 |
 
-Se validaron los permisos de Usuario, Revisor y Admin; el flujo end-to-end; la observabilidad; los estados de Aprobados/Rechazados, reapertura y eliminación; la seguridad/autenticación; la persistencia; la reproducibilidad local; y el servicio de IA.
+Se validaron los permisos de Usuario, Revisor y Admin; el flujo end-to-end; la observabilidad; los estados de Aprobados/Rechazados, reapertura y eliminación; la seguridad/autenticación; la persistencia; la reproducibilidad local; el servicio de IA y el proveedor de IA configurable.
 
 ## 15. Incidencias
 
-No se registraron incidencias bloqueantes durante el ciclo de pruebas QA-01 a QA-10.
+No se registraron incidencias bloqueantes durante el ciclo de pruebas QA-01 a QA-12.
+
+Incidencia no bloqueante: la descarga del modelo local de IA mediante el contenedor Docker falló por un error de certificado TLS de la red (`x509: certificate signed by unknown authority`). Se resolvió utilizando la instalación nativa de Ollama, sin cambios en el código del sistema.
 
 ## 16. Estado final del MVP
 
@@ -93,6 +103,7 @@ Se recomienda mantener respaldos periódicos de la base de datos y del repositor
 - Evaluación de un despliegue productivo futuro.
 - Incorporación de mejoras funcionales fuera del alcance del MVP actual.
 - Mantenimiento evolutivo continuo del sistema.
+- Evaluación de modelos de IA locales de mayor capacidad, según el equipo disponible.
 
 ## 19. Aceptación académica
 
