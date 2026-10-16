@@ -14,7 +14,7 @@ services:
     command: start-dev
     environment:
       KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?define KEYCLOAK_ADMIN_PASSWORD en .env}
     ports:
       - "8080:8080"
     volumes:
@@ -29,7 +29,7 @@ services:
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_PID: "Developer"
-      MSSQL_SA_PASSWORD: "TuPassword123!"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?define MSSQL_SA_PASSWORD en .env}
     ports:
       - "1438:1433"
     volumes:
@@ -55,6 +55,7 @@ services:
     container_name: prometheus
     volumes:
       - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./observability/alerts.yml:/etc/prometheus/alerts.yml
     ports:
       - "9090:9090"
     networks:
@@ -67,7 +68,11 @@ services:
       - "3000:3000"
     environment:
       GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?define GRAFANA_ADMIN_PASSWORD en .env}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards
     networks:
       - observabilidad-net
     depends_on:
@@ -79,9 +84,6 @@ networks:
 
 volumes:
   keycloak_data:
-  sqlserver_shard1_data:
-  sqlserver_shard2_data:
-  sqlserver_shard3_data:
-  sqlserver_shard4_data:
   sqlserver_documental_data:
   ollama_data:
+  grafana_data:
