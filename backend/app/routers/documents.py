@@ -21,11 +21,18 @@ from app.core.database import (
     SessionLocal,
     VALID_CATEGORIES,
 )
+from app.core.metrics import (
+    record_upload,
+    record_transition,
+    record_decision_duration,
+)
 from app.models.document import Document
+from app.models.document_event import DocumentEvent
 from app.services.ai_service import analyze_document, AIServiceError
 
 
 router = APIRouter()
+
 
 def require_reviewer_or_admin(
     current_user: dict = Depends(get_current_user),
@@ -42,6 +49,24 @@ def require_reviewer_or_admin(
         )
 
     return current_user
+
+
+def _event(
+    document_id: str,
+    previous_status: Optional[str],
+    new_status: str,
+    username: str,
+    comment: Optional[str] = None,
+) -> DocumentEvent:
+    return DocumentEvent(
+        document_id=document_id,
+        previous_status=previous_status,
+        new_status=new_status,
+        username=username,
+        comment=comment,
+        created_at=datetime.utcnow(),
+    )
+
 
 @router.post("/upload")
 async def upload_document(
@@ -88,10 +113,20 @@ async def upload_document(
         )
 
         db.add(new_document)
+        db.add(
+            _event(
+                document_id,
+                None,
+                "recibido",
+                current_user["username"],
+            )
+        )
         db.commit()
 
     finally:
         db.close()
+
+    record_upload(category)
 
     return {
         "id": document_id,
@@ -100,6 +135,7 @@ async def upload_document(
         "status": "recibido",
         "uploaded_by": current_user["username"],
     }
+
 
 def _serialize(doc: Document, with_ai: bool = True) -> dict:
     data = {
@@ -131,6 +167,7 @@ def _serialize(doc: Document, with_ai: bool = True) -> dict:
         )
 
     return data
+
 
 @router.get("/")
 def list_documents(
@@ -170,6 +207,7 @@ def list_documents(
         ],
     }
 
+
 @router.get("/archive")
 def list_archived_documents(
     current_user: dict = Depends(require_reviewer_or_admin),
@@ -207,6 +245,7 @@ def list_archived_documents(
         "total_rejected": len(rejected_docs),
     }
 
+
 VALID_TRANSITIONS = {
     "recibido": ["en_revision"],
     "en_revision": ["revisado", "correccion"],
@@ -220,6 +259,7 @@ VALID_TRANSITIONS = {
 class ReviewRequest(BaseModel):
     comment: Optional[str] = None
     new_status: str
+
 
 def _find_document(document_id: str):
     db = SessionLocal()
@@ -239,6 +279,7 @@ def _find_document(document_id: str):
         status_code=404,
         detail="Documento no encontrado",
     )
+
 
 @router.post("/{document_id}/review")
 def review_document(
@@ -278,6 +319,8 @@ def review_document(
                 ),
             )
 
+        previous_status = doc.status
+
         doc.status = body.new_status
         doc.reviewed_by = current_user["username"]
         doc.reviewed_at = datetime.utcnow()
@@ -285,12 +328,24 @@ def review_document(
         if body.comment:
             doc.review_comment = body.comment
 
+        db.add(
+            _event(
+                doc.id,
+                previous_status,
+                body.new_status,
+                current_user["username"],
+                body.comment,
+            )
+        )
         db.commit()
+
+        record_transition(previous_status, body.new_status)
 
         return _serialize(doc)
 
     finally:
         db.close()
+
 
 @router.post("/{document_id}/decide")
 def decide_document(
@@ -327,19 +382,82 @@ def decide_document(
                 ),
             )
 
+        previous_status = doc.status
+        decided_at = datetime.utcnow()
+
+        duration = (
+            (decided_at - doc.uploaded_at).total_seconds()
+            if doc.uploaded_at
+            else None
+        )
+
         doc.status = body.new_status
         doc.reviewed_by = current_user["username"]
-        doc.reviewed_at = datetime.utcnow()
+        doc.reviewed_at = decided_at
 
         if body.comment:
             doc.review_comment = body.comment
 
+        db.add(
+            _event(
+                doc.id,
+                previous_status,
+                body.new_status,
+                current_user["username"],
+                body.comment,
+            )
+        )
         db.commit()
+
+        record_transition(previous_status, body.new_status)
+
+        if duration is not None:
+            record_decision_duration(
+                duration,
+                body.new_status,
+                doc.category,
+            )
 
         return _serialize(doc)
 
     finally:
         db.close()
+
+
+@router.get("/{document_id}/events")
+def document_events(
+    document_id: str,
+    current_user: dict = Depends(require_reviewer_or_admin),
+):
+    db = SessionLocal()
+
+    try:
+        events = (
+            db.query(DocumentEvent)
+            .filter(DocumentEvent.document_id == document_id)
+            .order_by(
+                DocumentEvent.created_at.asc(),
+                DocumentEvent.id.asc(),
+            )
+            .all()
+        )
+
+        result = [
+            {
+                "previous_status": e.previous_status,
+                "new_status": e.new_status,
+                "username": e.username,
+                "comment": e.comment,
+                "created_at": e.created_at.isoformat(),
+            }
+            for e in events
+        ]
+
+    finally:
+        db.close()
+
+    return {"document_id": document_id, "events": result}
+
 
 @router.get("/{document_id}/download")
 def download_document(
@@ -374,6 +492,7 @@ def download_document(
         filename=original_filename,
         media_type="application/octet-stream",
     )
+
 
 @router.post("/{document_id}/analyze")
 def analyze(
@@ -410,6 +529,7 @@ def analyze(
     finally:
         db.close()
 
+
 @router.delete("/{document_id}")
 def delete_document(
     document_id: str,
@@ -422,6 +542,14 @@ def delete_document(
     try:
         stored_path = doc.stored_path
 
+        db.add(
+            _event(
+                doc.id,
+                doc.status,
+                "eliminado",
+                current_user["username"],
+            )
+        )
         db.delete(doc)
         db.commit()
 

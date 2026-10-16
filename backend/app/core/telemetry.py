@@ -3,6 +3,7 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+from opentelemetry.sdk.metrics.view import View, ExplicitBucketHistogramAggregation
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 from opentelemetry.sdk.resources import Resource
@@ -20,7 +21,19 @@ def setup_telemetry(app):
 
     metric_exporter = OTLPMetricExporter(endpoint=settings.otel_exporter_otlp_endpoint, insecure=True)
     metric_reader = PeriodicExportingMetricReader(metric_exporter, export_interval_millis=5000)
-    meter_provider = MeterProvider(resource=resource, metric_readers=[metric_reader])
+
+    decision_view = View(
+        instrument_name="document_decision_duration_seconds",
+        aggregation=ExplicitBucketHistogramAggregation(
+            [60, 300, 900, 3600, 14400, 43200, 86400, 259200, 604800]
+        ),
+    )
+
+    meter_provider = MeterProvider(
+        resource=resource,
+        metric_readers=[metric_reader],
+        views=[decision_view],
+    )
     metrics.set_meter_provider(meter_provider)
 
     FastAPIInstrumentor.instrument_app(app)
