@@ -1,3 +1,5 @@
+import logging
+
 import httpx
 from jose import jwt, JWTError
 from fastapi import Depends, HTTPException, status
@@ -5,8 +7,12 @@ from fastapi.security import OAuth2PasswordBearer
 
 from app.config import settings
 
+logger = logging.getLogger(__name__)
+
+_public_keycloak = settings.keycloak_public_url or settings.keycloak_url
+
 oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl=f"{settings.keycloak_url}/realms/{settings.keycloak_realm}/protocol/openid-connect/token"
+    tokenUrl=f"{_public_keycloak}/realms/{settings.keycloak_realm}/protocol/openid-connect/token"
 )
 
 _jwks_cache = None
@@ -43,11 +49,13 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
             "email": payload.get("email"),
             "roles": payload.get("realm_access", {}).get("roles", []),
         }
+    except HTTPException:
+        raise
     except JWTError as e:
-        print("JWTError:", repr(e))
+        logger.warning("Token JWT inválido: %r", e)
         raise credentials_exception
-    except Exception as e:
-        print("Error validando token:", repr(e))
+    except Exception:
+        logger.exception("Error validando token")
         raise credentials_exception
 
 

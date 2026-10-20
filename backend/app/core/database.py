@@ -5,7 +5,10 @@ from app.config import settings
 
 Base = declarative_base()
 
-engine = create_engine(settings.database_url_documental)
+engine = create_engine(
+    settings.database_url_documental,
+    pool_pre_ping=True,
+)
 
 SessionLocal = sessionmaker(bind=engine)
 
@@ -15,9 +18,6 @@ VALID_CATEGORIES = [
     "regulatorio_compliance",
     "propiedad_intelectual",
 ]
-
-SHARD_MAP = {category: SessionLocal for category in VALID_CATEGORIES}
-ENGINE_MAP = {"observabilidad_documental": engine}
 
 
 def get_session_for_category(category: str):
