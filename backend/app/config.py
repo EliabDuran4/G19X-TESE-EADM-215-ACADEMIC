@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     upload_dir: str = "uploads"
 
     keycloak_url: str = "http://localhost:8080"
+    keycloak_public_url: str = ""
     keycloak_realm: str = "observabilidad-documental"
     keycloak_client_id: str = "sistema-documental-app"
     keycloak_client_secret: str = ""
@@ -22,6 +23,8 @@ class Settings(BaseSettings):
     ollama_url: str = "http://localhost:11434"
     ollama_model: str = "qwen2.5:3b"
     ollama_timeout: float = 180.0
+    reporting_service_url: str = "http://reporting-service:8001"
+    reporting_timeout: float = 3.0
 
     class Config:
         env_file = ".env"

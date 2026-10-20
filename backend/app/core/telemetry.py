@@ -9,6 +9,7 @@ from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExp
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from app.config import settings
+from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 
 
 def setup_telemetry(app):
@@ -37,3 +38,4 @@ def setup_telemetry(app):
     metrics.set_meter_provider(meter_provider)
 
     FastAPIInstrumentor.instrument_app(app)
+    HTTPXClientInstrumentor().instrument()

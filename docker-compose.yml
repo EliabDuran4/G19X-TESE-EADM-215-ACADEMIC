@@ -11,7 +11,7 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:24.0
     container_name: keycloak
-    command: start-dev
+    command: start-dev --import-realm
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?define KEYCLOAK_ADMIN_PASSWORD en .env}
@@ -19,6 +19,7 @@ services:
       - "8080:8080"
     volumes:
       - keycloak_data:/opt/keycloak/data
+      - ./keycloak:/opt/keycloak/data/import:ro
     networks:
       - observabilidad-net
 
@@ -78,6 +79,52 @@ services:
     depends_on:
       - prometheus
 
+  backend:
+    build: ./backend
+    container_name: backend
+    env_file:
+      - path: ./backend/.env
+        required: false
+    environment:
+      DATABASE_URL_DOCUMENTAL: ${DATABASE_URL_DOCKER:?define DATABASE_URL_DOCKER en .env}
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_PUBLIC_URL: http://localhost:8080
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OLLAMA_URL: http://host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8000:8000"
+    volumes:
+      - uploads_data:/app/uploads
+    networks:
+      - observabilidad-net
+    depends_on:
+      - sqlserver_documental
+      - keycloak
+      - otel-collector
+  reporting-service:
+    build: ./reporting-service
+    container_name: reporting-service
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      DATABASE_URL_REPORTING: mssql+pyodbc://reporting_ro:${REPORTING_DB_PASSWORD:?define REPORTING_DB_PASSWORD en .env}@sqlserver_documental:1433/observabilidad_documental?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes
+    networks:
+      - observabilidad-net
+    depends_on:
+      - sqlserver_documental
+      - otel-collector
+
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    ports:
+      - "5173:5173"
+    networks:
+      - observabilidad-net
+    depends_on:
+      - backend
+
 networks:
   observabilidad-net:
     driver: bridge
@@ -87,3 +134,4 @@ volumes:
   sqlserver_documental_data:
   ollama_data:
   grafana_data:
+  uploads_data:
