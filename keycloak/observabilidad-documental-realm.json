@@ -483,94 +483,61 @@
   "webAuthnPolicyPasswordlessAcceptableAaguids": [],
   "webAuthnPolicyPasswordlessExtraOrigins": [],
   "users": [
-    {
-      "id": "c5755c99-733c-4798-9463-39893d0fe3a8",
-      "username": "admindoc1",
-      "firstName": "admin1",
-      "lastName": "adminDoc",
-      "email": "admin@gmail.com",
-      "emailVerified": true,
-      "createdTimestamp": 1789157823506,
-      "enabled": true,
-      "totp": false,
-      "credentials": [
-        {
-          "id": "fef4a84a-397e-40c5-ae13-fd8f4449f8b3",
-          "type": "password",
-          "userLabel": "My password",
-          "createdDate": 1789157860582,
-          "secretData": "{\"value\":\"dxT29zJH2y5jTde+ocQZRx7Bbkr8lhFxfRlG1cVJT7JYj4/myOWxb0T/duHzfqq5aXYtVKKHMwoIvT0Vc6gHsw==\",\"salt\":\"MZrzE1c9Euv9jyzn4JLwkQ==\",\"additionalParameters\":{}}",
-          "credentialData": "{\"hashIterations\":210000,\"algorithm\":\"pbkdf2-sha512\",\"additionalParameters\":{}}"
-        }
-      ],
-      "disableableCredentialTypes": [],
-      "requiredActions": [],
-      "realmRoles": [
-        "default-roles-observabilidad-documental",
-        "admin_documental"
-      ],
-      "notBefore": 0,
-      "groups": []
-    },
-    {
-      "id": "b909a998-a22d-413a-8f23-07602b3da915",
-      "username": "revisordoc1",
-      "firstName": "revisor1",
-      "lastName": "revisorDoc",
-      "email": "revisor@gmail.com",
-      "emailVerified": true,
-      "createdTimestamp": 1789157735700,
-      "enabled": true,
-      "totp": false,
-      "credentials": [
-        {
-          "id": "955f7cd0-cf77-41b3-ade8-4eba75a7dec6",
-          "type": "password",
-          "userLabel": "My password",
-          "createdDate": 1789157760256,
-          "secretData": "{\"value\":\"Q+YX7PANkKb7q8zygnndxg+7HDAvqcNwfNOvM5eAAmrU98KNXBQRcYYnsV/chhf5UEiVAvwCsNotpnQUP9WA9w==\",\"salt\":\"L40fkQRCGBkHQDAa/Po/3Q==\",\"additionalParameters\":{}}",
-          "credentialData": "{\"hashIterations\":210000,\"algorithm\":\"pbkdf2-sha512\",\"additionalParameters\":{}}"
-        }
-      ],
-      "disableableCredentialTypes": [],
-      "requiredActions": [],
-      "realmRoles": [
-        "revisor_documental",
-        "default-roles-observabilidad-documental"
-      ],
-      "notBefore": 0,
-      "groups": []
-    },
-    {
-      "id": "42fe1e85-19f7-4943-b1d5-107fce6da39a",
-      "username": "usuariodoc1",
-      "firstName": "usuario1",
-      "lastName": "usuarioDoc",
-      "email": "usuario.doc@gmail.com",
-      "emailVerified": true,
-      "createdTimestamp": 1789157678012,
-      "enabled": true,
-      "totp": false,
-      "credentials": [
-        {
-          "id": "13d9098e-7075-4cd5-8b53-dbe87ed090d3",
-          "type": "password",
-          "userLabel": "My password",
-          "createdDate": 1789157699657,
-          "secretData": "{\"value\":\"5J9Ix7P9rArCAwClVnJFlC6fhN4QmfMhDpp/iKbqjJOJ265TG0t6ckA8BAvzRBQGV2y13k31yG5Fb6IPHklyYw==\",\"salt\":\"wJL7EVnBohJ2DsBaTQSoRg==\",\"additionalParameters\":{}}",
-          "credentialData": "{\"hashIterations\":210000,\"algorithm\":\"pbkdf2-sha512\",\"additionalParameters\":{}}"
-        }
-      ],
-      "disableableCredentialTypes": [],
-      "requiredActions": [],
-      "realmRoles": [
-        "usuario_documental",
-        "default-roles-observabilidad-documental"
-      ],
-      "notBefore": 0,
-      "groups": []
-    }
-  ],
+  {
+    "username": "admindoc1",
+    "firstName": "admin1",
+    "lastName": "adminDoc",
+    "email": "admin@gmail.com",
+    "emailVerified": true,
+    "enabled": true,
+    "totp": false,
+    "credentials": [
+      { "type": "password", "value": "Temporal#2026", "temporary": true }
+    ],
+    "requiredActions": ["UPDATE_PASSWORD"],
+    "realmRoles": [
+      "default-roles-observabilidad-documental",
+      "admin_documental"
+    ],
+    "groups": []
+  },
+  {
+    "username": "revisordoc1",
+    "firstName": "revisor1",
+    "lastName": "revisorDoc",
+    "email": "revisor@gmail.com",
+    "emailVerified": true,
+    "enabled": true,
+    "totp": false,
+    "credentials": [
+      { "type": "password", "value": "Temporal#2026", "temporary": true }
+    ],
+    "requiredActions": ["UPDATE_PASSWORD"],
+    "realmRoles": [
+      "revisor_documental",
+      "default-roles-observabilidad-documental"
+    ],
+    "groups": []
+  },
+  {
+    "username": "usuariodoc1",
+    "firstName": "usuario1",
+    "lastName": "usuarioDoc",
+    "email": "usuario.doc@gmail.com",
+    "emailVerified": true,
+    "enabled": true,
+    "totp": false,
+    "credentials": [
+      { "type": "password", "value": "Temporal#2026", "temporary": true }
+    ],
+    "requiredActions": ["UPDATE_PASSWORD"],
+    "realmRoles": [
+      "usuario_documental",
+      "default-roles-observabilidad-documental"
+    ],
+    "groups": []
+  }
+],
   "scopeMappings": [
     {
       "clientScope": "offline_access",
@@ -881,7 +848,7 @@
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
-      "secret": "CAMBIA_ESTE_SECRETO",
+      "secret": "${KEYCLOAK_CLIENT_SECRET}",
       "redirectUris": [
         "http://127.0.0.1:8000/*"
       ],
