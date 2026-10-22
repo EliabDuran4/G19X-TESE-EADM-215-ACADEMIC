@@ -17,7 +17,6 @@ from typing import Optional
 from app.config import settings
 from app.core.security import get_current_user, require_role
 from app.core.database import (
-    get_session_for_category,
     SessionLocal,
     VALID_CATEGORIES,
 )
@@ -99,7 +98,7 @@ async def upload_document(
         content = await file.read()
         buffer.write(content)
 
-    db = get_session_for_category(category)
+    db = SessionLocal()
 
     try:
         new_document = Document(

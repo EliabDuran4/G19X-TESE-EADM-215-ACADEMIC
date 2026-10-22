@@ -19,8 +19,9 @@ VALID_CATEGORIES = [
     "propiedad_intelectual",
 ]
 
-
-def get_session_for_category(category: str):
-    if category not in VALID_CATEGORIES:
-        raise ValueError(f"Categoría inválida: {category}")
-    return SessionLocal()
+VALID_CATEGORIES = [
+    "contratos_corporativo",
+    "litigioso",
+    "regulatorio_compliance",
+    "propiedad_intelectual",
+]
