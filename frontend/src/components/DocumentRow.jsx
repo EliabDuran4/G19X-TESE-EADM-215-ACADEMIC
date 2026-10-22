@@ -143,13 +143,8 @@ export default function DocumentRow({ doc, onUpdate }) {
           )}
 
           {canAnalyze && (
-            <button
-              className="action-btn"
-              style={{ background: "#7c3aed" }}
-              disabled={busy || aiBusy}
-              onClick={handleAnalyze}
-            >
-              {aiBusy ? "Analizando..." : "Analizar con IA"}
+            <button className="action-btn review" disabled={busy || histBusy} onClick={handleHistory}>
+              {histOpen ? "Ocultar historial" : "Historial"}
             </button>
           )}
 
