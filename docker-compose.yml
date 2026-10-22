@@ -35,7 +35,7 @@ services:
     ports:
       - "1438:1433"
     volumes:
-      - sqlserver_documental_data:/var/lib/mssql
+      - sqlserver_documental_data:/var/opt/mssql
     networks:
       - observabilidad-net
 
