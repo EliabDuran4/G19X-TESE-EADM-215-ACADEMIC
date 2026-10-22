@@ -1,10 +1,10 @@
 # LegalTech — Sistema de Observabilidad para Procesos Documentales
 
-LegalTech es un sistema web de gestión y observabilidad de procesos documentales jurídicos, desarrollado como proyecto académico durante una estancia en **PluriOne**.
+LegalTech es un sistema web de gestión y observabilidad de procesos documentales jurídicos, desarrollado como proyecto académico durante una estancia en PluriOne.
 
-El sistema permite cargar, consultar, revisar, corregir, aprobar, rechazar, archivar y descargar documentos mediante un flujo controlado por roles. Integra persistencia en **SQL Server**, autenticación y autorización mediante **Keycloak**, observabilidad con **OpenTelemetry, Prometheus y Grafana**, y análisis documental asistido por Inteligencia Artificial mediante **Claude API**.
+El sistema permite cargar, consultar, revisar, corregir, aprobar, rechazar, archivar y descargar documentos mediante un flujo controlado por roles. Integra persistencia en SQL Server, autenticación y autorización con Keycloak, observabilidad del **proceso documental** (no solo de las peticiones HTTP) con OpenTelemetry, Prometheus y Grafana, historial de cada documento y análisis asistido por Inteligencia Artificial.
 
-> La Inteligencia Artificial funciona únicamente como herramienta de apoyo al análisis documental. No aprueba, rechaza ni modifica automáticamente el estado de los documentos; la decisión final corresponde a los usuarios autorizados.
+> La Inteligencia Artificial funciona únicamente como herramienta de apoyo. No aprueba, rechaza ni modifica el estado de los documentos; la decisión final corresponde a los usuarios autorizados.
 
 ---
 
@@ -14,12 +14,14 @@ El sistema permite cargar, consultar, revisar, corregir, aprobar, rechazar, arch
 - [Tecnologías](#tecnologías)
 - [Roles del sistema](#roles-del-sistema)
 - [Flujo documental](#flujo-documental)
+- [Historial de documentos](#historial-de-documentos)
 - [Inteligencia Artificial](#inteligencia-artificial)
 - [Requisitos previos](#requisitos-previos)
-- [Instalación](#instalación)
-- [Configuración](#configuración)
-- [Ejecución](#ejecución)
+- [Instalación y puesta en marcha](#instalación-y-puesta-en-marcha)
+- [Configuración (.env)](#configuración-env)
+- [Keycloak: realm y usuarios de prueba](#keycloak-realm-y-usuarios-de-prueba)
 - [Observabilidad](#observabilidad)
+- [Operación diaria](#operación-diaria)
 - [Estructura del proyecto](#estructura-del-proyecto)
 - [Seguridad](#seguridad)
 - [Documentación](#documentación)
@@ -30,52 +32,35 @@ El sistema permite cargar, consultar, revisar, corregir, aprobar, rechazar, arch
 
 ## Arquitectura
 
-LegalTech utiliza una arquitectura web compuesta por frontend, backend, autenticación, persistencia, observabilidad e integración con Inteligencia Artificial.
-
 ```text
-                    ┌─────────────────────┐
-                    │   React.js + Vite   │
-                    │      Frontend       │
-                    └──────────┬──────────┘
-                               │ HTTP / REST
-                               ▼
-                    ┌─────────────────────┐
-                    │      FastAPI        │
-                    │       Backend       │
-                    └─────┬─────┬─────┬───┘
-                          │     │     │
-              ┌───────────┘     │     └──────────────┐
-              ▼                 ▼                    ▼
-       ┌─────────────┐   ┌─────────────┐      ┌─────────────┐
-       │  Keycloak   │   │ SQL Server  │      │ Claude API  │
-       │ Auth / JWT  │   │ Persistencia│      │ Análisis IA │
-       └─────────────┘   └─────────────┘      └─────────────┘
-              │
-              │ autenticación
-              │ y autorización
-              ▼
+              ┌─────────────────────┐
+              │  React.js + Vite    │
+              │      Frontend       │
+              └──────────┬──────────┘
+                         │ HTTP / REST
+                         ▼
+              ┌─────────────────────┐
+              │      FastAPI        │
+              │      Backend        │
+              └───┬─────┬─────┬─────┘
+        ┌─────────┘     │     └──────────┐
+        ▼               ▼                ▼
+ ┌─────────────┐ ┌─────────────┐ ┌──────────────────┐
+ │  Keycloak   │ │ SQL Server  │ │ IA: Claude API / │
+ │  Auth / JWT │ │ Persistencia│ │ Ollama (local)   │
+ └─────────────┘ └─────────────┘ └──────────────────┘
 
-       Backend + OpenTelemetry SDK
-                    │
-                    ▼
-       OpenTelemetry Collector
-                    │
-                    ▼
-              Prometheus
-                    │
-                    ▼
-                Grafana
+ Backend + OpenTelemetry SDK
+        │
+        ▼
+ OpenTelemetry Collector ──► Prometheus ──► Grafana
+                                  │
+                                  └──► Reglas de alerta
 ```
 
-La base de datos utilizada actualmente es una única instancia de **SQL Server Developer Edition**, con la base:
+La base de datos es una única instancia de SQL Server Developer Edition con la base `observabilidad_documental`. La arquitectura inicial contemplaba varios shards; la versión actual usa una sola base para reducir el consumo de recursos del entorno de desarrollo.
 
-```text
-observabilidad_documental
-```
-
-La arquitectura inicial contemplaba múltiples shards; sin embargo, la versión actual del proyecto utiliza una sola base de datos SQL Server para optimizar el consumo de recursos del entorno de desarrollo.
-
-Los servicios principales se ejecutan y administran mediante **Docker Compose**.
+Todos los servicios se administran con Docker Compose.
 
 ---
 
@@ -89,9 +74,9 @@ Los servicios principales se ejecutan y administran mediante **Docker Compose**.
 | Autenticación y autorización | Keycloak + JWT + roles |
 | Base de datos | SQL Server Developer Edition |
 | Observabilidad | OpenTelemetry + OpenTelemetry Collector |
-| Métricas | Prometheus |
+| Métricas y alertas | Prometheus |
 | Visualización | Grafana |
-| Inteligencia Artificial | Claude API (Anthropic) |
+| Inteligencia Artificial | Claude API (Anthropic) u Ollama (local) |
 | Contenerización | Docker + Docker Compose |
 | Control de versiones | Git + GitHub |
 
@@ -99,49 +84,30 @@ Los servicios principales se ejecutan y administran mediante **Docker Compose**.
 
 ## Roles del sistema
 
-LegalTech implementa tres roles principales:
-
 | Rol | Permisos principales |
 |---|---|
 | `usuario_documental` | Iniciar sesión, subir documentos y consultar sus propios documentos y estados. |
-| `revisor_documental` | Subir, consultar y descargar documentos; iniciar revisión, realizar comentarios, marcar como revisado, solicitar correcciones, consultar documentos aprobados/rechazados y reabrir documentos finalizados. |
-| `admin_documental` | Subir, consultar y descargar documentos; aprobar o rechazar, consultar el archivo, reabrir documentos finalizados y eliminar documentos según los permisos disponibles. |
+| `revisor_documental` | Subir, consultar y descargar documentos; iniciar revisión, comentar, marcar como revisado, solicitar correcciones, consultar el archivo, ver el historial y reabrir documentos finalizados. |
+| `admin_documental` | Lo anterior más aprobar o rechazar, consultar el archivo y eliminar documentos. |
 
-El acceso a las funcionalidades está controlado mediante tokens **JWT** y roles administrados desde Keycloak.
+El acceso se controla con tokens JWT y roles administrados desde Keycloak.
 
 ---
 
 ## Flujo documental
 
-El flujo principal de los documentos es:
-
 ```text
-recibido
-   │
-   ▼
-en_revision
-   │
-   ▼
-revisado
-   │
-   ├──────────────► aprobado
-   │
-   └──────────────► rechazado
+recibido ──► en_revision ──► revisado ──┬──► aprobado
+                                        └──► rechazado
 ```
 
 Cuando un documento necesita modificaciones:
 
 ```text
-en_revision
-     │
-     ▼
- correccion
-     │
-     ▼
-en_revision
+en_revision ──► correccion ──► en_revision
 ```
 
-Los documentos finalizados también pueden volver al proceso de revisión:
+Los documentos finalizados pueden volver a revisión (reapertura intencional):
 
 ```text
 aprobado ──┐
@@ -149,198 +115,218 @@ aprobado ──┐
 rechazado ─┘
 ```
 
-Esta reapertura es intencional y permite que un documento previamente finalizado pueda volver a ser revisado cuando sea necesario.
+---
+
+## Historial de documentos
+
+Cada cambio queda registrado en la tabla `document_events`: subida, revisión, decisión y eliminación, con estado anterior, estado nuevo, usuario, comentario y fecha.
+
+- Endpoint: `GET /documents/{id}/events` (roles revisor y administrador).
+- En el frontend, el botón **Historial** de cada documento muestra su línea de tiempo.
 
 ---
 
 ## Inteligencia Artificial
 
-LegalTech integra **Claude API** como herramienta de apoyo al proceso de revisión documental.
+El análisis puede proporcionar resumen, observaciones, posibles inconsistencias, puntos a revisar, recomendaciones y una conclusión orientativa. Está disponible solo para revisor y administrador.
 
-El análisis puede proporcionar información como:
+La IA **no** puede aprobar ni rechazar documentos, cambiar estados ni sustituir la decisión humana. El sistema sigue funcionando aunque el servicio de IA no esté disponible.
 
-- Resumen del documento.
-- Observaciones relevantes.
-- Posibles inconsistencias.
-- Puntos que requieren revisión.
-- Recomendaciones.
-- Conclusión orientativa.
+Proveedores (variables en `.env`):
 
-La funcionalidad de análisis está destinada a los roles autorizados de revisión y administración.
-
-La IA **no puede**:
-
-- Aprobar documentos.
-- Rechazar documentos.
-- Cambiar estados automáticamente.
-- Sustituir la decisión del revisor o administrador.
-
-El sistema está diseñado para continuar funcionando aunque el servicio de IA no se encuentre disponible o no exista una API Key válida.
+| Variable | Valores |
+|---|---|
+| `AI_PROVIDER` | `ollama` (desarrollo local), `claude` (producción) o `none` |
+| `AI_FALLBACK_PROVIDER` | `ollama` para respaldo en producción; vacío = sin respaldo |
+| `ANTHROPIC_API_KEY` | Solo necesaria si el proveedor es `claude` |
 
 ---
 
 ## Requisitos previos
 
-Para ejecutar el proyecto localmente se recomienda contar con:
-
 - Windows 10/11 o sistema compatible con Docker.
-- Docker Desktop.
-- Docker Compose.
-- Git.
-- PowerShell, Terminal o equivalente.
+- Docker Desktop (con Docker Compose) y Git.
+- Python 3.12 y ODBC Driver 18 para SQL Server, solo si se ejecuta el backend fuera de Docker o se corre `create_tables.py` desde el equipo.
 - Navegador web.
-- Cuenta/API Key de Anthropic únicamente si se utilizará el análisis con IA.
-
-> La funcionalidad principal del sistema no depende de Claude API para operar.
+- API Key de Anthropic, únicamente si se usará el análisis con Claude.
 
 ---
 
-## Instalación
+## Instalación y puesta en marcha
 
-Clonar el repositorio:
+**1. Clonar el repositorio**
 
 ```powershell
 git clone https://github.com/EliabDuran4/G19X-TESE-EADM-215-ACADEMIC.git
-```
-
-Ingresar al proyecto:
-
-```powershell
 cd G19X-TESE-EADM-215-ACADEMIC
 ```
 
----
-
-## Configuración
-
-### 1. Variables de entorno
-
-El archivo de ejemplo se encuentra en:
-
-```text
-backend/.env.example
-```
-
-Crear una copia:
+**2. Crear el `.env`** (ver [Configuración](#configuración-env))
 
 ```powershell
-Copy-Item backend/.env.example backend/.env
+Copy-Item .env.example .env
 ```
 
-Completar en `backend/.env` las variables requeridas por el proyecto, como:
+Completar las contraseñas y los secretos. Los valores obligatorios sin definir hacen que `docker compose` se detenga con un mensaje claro.
 
-- Conexión con SQL Server.
-- Configuración de Keycloak.
-- Configuración de OpenTelemetry.
-- `ANTHROPIC_API_KEY`, cuando se utilice el análisis con IA.
-
-### 2. Seguridad de las variables
-
-El archivo real:
-
-```text
-backend/.env
-```
-
-no debe subirse al repositorio.
-
-Antes de realizar un commit se recomienda verificar:
-
-```powershell
-git status
-```
-
-El repositorio únicamente debe contener el archivo de ejemplo:
-
-```text
-backend/.env.example
-```
-
-### 3. Configuración adicional
-
-La configuración de SQL Server, Keycloak, observabilidad y demás componentes se encuentra detallada en:
-
-```text
-MarkDown/Manual_Tecnico.md
-```
-
----
-
-## Ejecución
-
-Construir e iniciar los servicios:
+**3. Levantar los servicios**
 
 ```powershell
 docker compose up -d --build
-```
-
-Comprobar el estado:
-
-```powershell
 docker compose ps
 ```
 
-### Servicios principales
+Keycloak tarda unos 30 a 60 segundos en importar el realm la primera vez.
+
+**4. Crear la base de datos** (una sola vez)
+
+```powershell
+docker exec -it sqlserver_documental bash -c '/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -Q "CREATE DATABASE observabilidad_documental"'
+```
+
+También se puede ejecutar `CREATE DATABASE observabilidad_documental;` desde cualquier cliente SQL conectado a `localhost,1438` con el usuario `sa`.
+
+**5. Crear las tablas** (incluye `document_events`)
+
+```powershell
+cd backend
+python create_tables.py
+cd ..
+```
+
+Requiere el entorno virtual de Python con las dependencias de `backend/requirements.txt` y `DATABASE_URL_DOCUMENTAL` en el `.env`.
+
+**6. Abrir la aplicación** en http://localhost:5173 con alguno de los [usuarios de prueba](#usuarios-de-prueba).
+
+### Servicios y puertos
 
 | Servicio | Dirección |
 |---|---|
-| Frontend | `http://localhost:5173` |
-| Backend / API | `http://localhost:8000` |
-| Swagger | `http://localhost:8000/docs` |
-| Keycloak | `http://localhost:8080` |
-| SQL Server | `localhost:1438` |
-| Prometheus | `http://localhost:9090` |
-| Grafana | `http://localhost:3000` |
+| Frontend | http://localhost:5173 |
+| Backend / API | http://localhost:8000 |
+| Swagger | http://localhost:8000/docs |
+| Keycloak | http://localhost:8080 |
+| SQL Server | `localhost,1438` |
+| OpenTelemetry Collector | `localhost:4317` (gRPC), `4318` (HTTP) |
+| Prometheus | http://localhost:9090 |
+| Grafana | http://localhost:3000 |
 
-La configuración inicial de Keycloak, incluyendo realm, client, roles y usuarios, se encuentra documentada en el manual técnico.
+> Si se ejecuta el backend localmente con `uvicorn` (puerto 8000), hay que detener antes el contenedor `backend` para evitar conflicto de puertos.
+
+---
+
+## Configuración (.env)
+
+Existe **un único** archivo de variables, en la raíz del proyecto. Se copia desde `.env.example` y no se sube al repositorio. Lo leen `docker compose` y el backend (`backend/app/config.py`).
+
+| Grupo | Variables |
+|---|---|
+| Contraseñas de infraestructura | `KEYCLOAK_ADMIN_PASSWORD`, `MSSQL_SA_PASSWORD`, `GRAFANA_ADMIN_PASSWORD`, `REPORTING_DB_PASSWORD` |
+| Base de datos | `DATABASE_URL_DOCUMENTAL` (backend local, puerto 1438), `DATABASE_URL_DOCKER` (backend en Docker, host `sqlserver_documental`, puerto 1433) |
+| Keycloak | `KEYCLOAK_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_CLIENT_SECRET` |
+| CORS | `CORS_ORIGINS` (orígenes del frontend separados por coma; por defecto `http://localhost:5173`) |
+| OpenTelemetry | `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME` |
+| IA | `AI_PROVIDER`, `AI_FALLBACK_PROVIDER`, `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, `OLLAMA_URL`, `OLLAMA_MODEL`, `OLLAMA_TIMEOUT` |
+
+`KEYCLOAK_CLIENT_SECRET` se usa en dos lugares: el backend y la importación del realm. Debe ser el mismo valor en ambos, por eso se define una sola vez aquí.
+
+Ejemplo de `DATABASE_URL_DOCUMENTAL`:
+
+```text
+mssql+pyodbc://sa:<PASSWORD>@localhost:1438/observabilidad_documental?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes
+```
+
+Si la contraseña contiene caracteres especiales (`@`, `#`, `/`), deben ir codificados en la URL.
+
+---
+
+## Keycloak: realm y usuarios de prueba
+
+El realm se importa automáticamente al crear el contenedor: `./keycloak` está montado en `/opt/keycloak/data/import` y Keycloak arranca con `start-dev --import-realm`. El archivo es `keycloak/observabilidad-documental-realm.json`.
+
+- El realm **solo se importa si no existe**. Para reimportarlo desde cero, borrar únicamente el volumen de Keycloak:
+
+  ```powershell
+  docker compose stop keycloak
+  docker compose rm -f keycloak
+  docker volume rm observabilidad-documental_keycloak_data
+  docker compose up -d keycloak
+  ```
+
+- El secreto del cliente se toma de `KEYCLOAK_CLIENT_SECRET` (el JSON contiene el marcador `${KEYCLOAK_CLIENT_SECRET}`).
+- Consola de administración: http://localhost:8080 con `admin` y `KEYCLOAK_ADMIN_PASSWORD`.
+
+### Usuarios de prueba
+
+| Usuario | Rol |
+|---|---|
+| `usuariodoc1` | `usuario_documental` |
+| `revisordoc1` | `revisor_documental` |
+| `admindoc1` | `admin_documental` |
+
+Los tres se crean con la contraseña temporal **`Temporal#2026`** y Keycloak obliga a cambiarla en el primer inicio de sesión. El primer cambio se hace en:
+
+```text
+http://localhost:8080/realms/observabilidad-documental/account
+```
+
+Después de reimportar el realm hay que cerrar sesión en el frontend para renovar el token.
 
 ---
 
 ## Observabilidad
 
-El proyecto incorpora observabilidad para facilitar el monitoreo del funcionamiento de la aplicación.
+La observabilidad cubre el **proceso documental**, no solo las peticiones HTTP.
 
-### Trazas
+### Métricas del proceso (backend)
 
-El backend utiliza **OpenTelemetry SDK** para instrumentar la aplicación y enviar telemetría al **OpenTelemetry Collector**.
+Definidas en `backend/app/core/metrics.py` y exportadas con OpenTelemetry:
 
-### Métricas
+- Documentos subidos, por categoría.
+- Transiciones de estado (`estado_anterior → estado_nuevo`).
+- Tiempo hasta la decisión (aprobado o rechazado), en un histograma con cubetas pensadas para horas y días (`backend/app/core/telemetry.py`).
+- Documentos por estado actual.
 
-Prometheus recopila las métricas expuestas por la infraestructura de observabilidad.
+> La duración se mide desde el último estado `revisado` hasta la decisión del administrador, de modo que un documento reabierto no acumula el tiempo anterior.
 
-Entre las métricas utilizadas se encuentran indicadores relacionados con:
+### Métricas técnicas
 
-- Número de peticiones.
-- Tasa de peticiones.
-- Latencia.
-- Disponibilidad de componentes.
-- Estado general del sistema.
+Número y tasa de peticiones, latencia y disponibilidad de componentes.
 
-### Dashboards
+### Dashboard de Grafana
 
-Grafana permite visualizar las métricas mediante paneles configurados para supervisar el comportamiento del sistema.
+El datasource y el dashboard `proceso_documental.json` se provisionan automáticamente desde `observability/grafana/`. Se accede en http://localhost:3000 con el usuario `admin` y `GRAFANA_ADMIN_PASSWORD`.
 
 ### Alertas
 
-Se dispone de reglas de alerta para detectar condiciones anómalas o indisponibilidad de componentes de observabilidad.
+Reglas en `observability/alerts.yml`, cargadas por Prometheus:
+
+- Cuello de botella en los estados `recibido`, `en_revision` y `correccion`.
+- Percentil 95 del tiempo de decisión mayor a 24 horas.
+- Colector de OpenTelemetry caído.
+
+Se consultan en http://localhost:9090/alerts.
 
 ### Logs
 
-Los registros se consultan mediante los logs generados por el backend y los contenedores Docker.
-
-El proyecto **no utiliza Grafana Loki** actualmente.
-
-Para consultar logs:
+Se consultan con los logs de los contenedores. El proyecto no utiliza Grafana Loki.
 
 ```powershell
-docker compose logs
-```
-
-o seguirlos en tiempo real:
-
-```powershell
+docker compose logs backend
 docker compose logs -f
 ```
+
+---
+
+## Operación diaria
+
+| Acción | Comando |
+|---|---|
+| Pausar los servicios sin eliminar contenedores | `docker compose stop` |
+| Volver a levantarlos | `docker compose up -d` |
+| Ver el estado | `docker compose ps` |
+
+Los datos de SQL Server viven en el volumen `sqlserver_documental_data`, montado en `/var/opt/mssql`, y sobreviven a `docker compose down`. **No** usar `docker compose down -v` ni `docker volume rm` sobre ese volumen: borran la base de datos.
 
 ---
 
@@ -353,59 +339,43 @@ G19X-TESE-EADM-215-ACADEMIC/
 │   ├── app/
 │   │   ├── core/
 │   │   │   ├── database.py
+│   │   │   ├── metrics.py
 │   │   │   ├── security.py
 │   │   │   └── telemetry.py
 │   │   ├── models/
-│   │   │   └── document.py
+│   │   │   ├── document.py
+│   │   │   └── document_event.py
 │   │   ├── routers/
 │   │   │   ├── auth.py
-│   │   │   └── documents.py
+│   │   │   ├── documents.py
+│   │   │   └── reports.py
 │   │   ├── services/
 │   │   │   └── ai_service.py
 │   │   ├── config.py
 │   │   └── main.py
-│   ├── .env.example
 │   ├── create_tables.py
 │   ├── Dockerfile
 │   └── requirements.txt
 │
 ├── frontend/
 │   ├── src/
-│   │   ├── components/
-│   │   │   └── DocumentRow.jsx
-│   │   ├── pages/
-│   │   │   ├── Archive.jsx
-│   │   │   ├── Documents.jsx
-│   │   │   └── Login.jsx
-│   │   ├── services/
-│   │   │   ├── api.js
-│   │   │   ├── authService.js
-│   │   │   └── documentService.js
-│   │   ├── App.jsx
-│   │   ├── index.css
-│   │   └── main.jsx
-│   ├── index.html
-│   ├── package.json
-│   └── package-lock.json
+│   │   ├── components/DocumentRow.jsx
+│   │   ├── pages/ (Archive.jsx, Documents.jsx, Login.jsx)
+│   │   ├── services/ (api.js, authService.js, documentService.js)
+│   │   └── App.jsx, main.jsx, index.css
+│   └── package.json
+│
+├── keycloak/
+│   └── observabilidad-documental-realm.json
 │
 ├── observability/
+│   ├── alerts.yml
 │   ├── otel-collector-config.yaml
-│   └── prometheus.yml
+│   ├── prometheus.yml
+│   └── grafana/ (datasource y dashboard proceso_documental.json)
 │
-├── MarkDown/
-│   ├── Documento_de_Arquitectura.md
-│   ├── Documento_de_Requerimientos.md
-│   ├── Evaluacion_Postimplementacion_Cierre.md
-│   ├── MVP.md
-│   ├── Manual_Tecnico.md
-│   ├── Manual_Usuario.md
-│   ├── PRD.md
-│   ├── Plan_Capacitacion.md
-│   ├── Plan_Mantenimiento.md
-│   ├── Propuesta_Tecnica.md
-│   ├── QA.md
-│   └── SCRUM.md
-│
+├── MarkDown/            # documentación formal
+├── .env.example
 ├── .gitignore
 └── docker-compose.yml
 ```
@@ -414,74 +384,33 @@ G19X-TESE-EADM-215-ACADEMIC/
 
 ## Seguridad
 
-LegalTech contempla diferentes medidas básicas de seguridad:
-
-- Autenticación mediante Keycloak.
-- Autorización basada en roles.
-- Uso de tokens JWT.
+- Autenticación con Keycloak, autorización por roles y tokens JWT.
 - Validación de permisos en el backend.
-- Separación de credenciales mediante variables de entorno.
-- Exclusión de `.env` mediante `.gitignore`.
-- Restricción de determinadas operaciones según el rol.
-- La API Key de Claude no se almacena directamente en el código fuente.
+- Credenciales y secretos solo en `.env`, excluido con `.gitignore`.
+- El realm exportado no contiene hashes de contraseñas; los usuarios de prueba usan una contraseña temporal que debe cambiarse.
+- CORS limitado a los orígenes definidos en `CORS_ORIGINS`.
+- La API Key de la IA no se almacena en el código fuente.
 
-> Nunca deben publicarse contraseñas, Client Secrets, tokens, API Keys ni archivos `.env` reales en el repositorio.
+> Nunca deben publicarse contraseñas, Client Secrets, tokens, API Keys ni archivos `.env` reales. Antes de cada commit, revisar con `git status`.
 
 ---
 
 ## Documentación
 
-La documentación formal del proyecto se encuentra en el directorio:
-
-```text
-MarkDown/
-```
-
-Incluye:
-
-- Documento de requerimientos.
-- Propuesta técnica.
-- Documento de arquitectura.
-- MVP.
-- PRD.
-- Planificación SCRUM, backlog y sprints.
-- Manual técnico.
-- Manual de usuario.
-- Reporte de pruebas QA.
-- Plan de mantenimiento y soporte.
-- Plan de capacitación y entrega.
-- Evaluación post-implementación y cierre técnico.
+La documentación formal está en `MarkDown/`: requerimientos, propuesta técnica, arquitectura, MVP, PRD, SCRUM, manual técnico, manual de usuario, QA, mantenimiento y soporte, capacitación y entrega, y evaluación post-implementación.
 
 ---
 
 ## Estado del proyecto
 
-**Estado actual:** MVP funcional.
+Estado actual: **MVP funcional**.
 
-Se han realizado pruebas funcionales correspondientes a los casos **QA-01 a QA-10**, incluyendo autenticación, permisos por rol, flujo documental, persistencia, observabilidad, archivo documental, reapertura, seguridad básica, reproducibilidad local y análisis documental mediante IA.
+Se realizaron pruebas funcionales QA-01 a QA-10 (autenticación, permisos por rol, flujo documental, persistencia, observabilidad, archivo, reapertura, seguridad básica, reproducibilidad local y análisis con IA). Resultados y evidencias en `MarkDown/QA.md`.
 
-Los resultados y evidencias se encuentran documentados en:
-
-```text
-MarkDown/QA.md
-```
-
-La implementación de **CI/CD mediante GitHub Actions no forma parte del alcance actual** y queda considerada como posible mejora futura.
-
----
-
-## Contexto académico
-
-El proyecto LegalTech se desarrolla en **PluriOne** como parte de las actividades académicas realizadas durante la estancia del alumno en modalidad dual.
-
-El proyecto busca aplicar conocimientos de desarrollo de software, bases de datos, sistemas distribuidos, seguridad, Inteligencia Artificial y observabilidad sobre un caso práctico de gestión documental.
+La implementación de CI/CD con GitHub Actions no forma parte del alcance actual.
 
 ---
 
 ## Autor
 
-**Eliab Duran**  
-Ingeniería en Sistemas Computacionales  
-Tecnológico de Estudios Superiores de Ecatepec (TESE)
-
-Proyecto desarrollado en **PluriOne**.
+Eliab Azarel Duran Martinez
