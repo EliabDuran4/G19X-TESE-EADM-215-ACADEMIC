@@ -5,6 +5,7 @@ import {
   deleteDocument,
   downloadDocument,
   analyzeDocument,
+  getDocumentEvents,
 } from "../services/documentService";
 import { getRoles } from "../services/authService";
 
@@ -29,6 +30,28 @@ export default function DocumentRow({ doc, onUpdate }) {
   const isAdmin = roles.includes("admin_documental");
   const canDownload = isRevisor || isAdmin;
   const canAnalyze = isRevisor || isAdmin;
+    const [histOpen, setHistOpen] = useState(false);
+  const [histBusy, setHistBusy] = useState(false);
+  const [histError, setHistError] = useState("");
+  const [events, setEvents] = useState([]);
+
+  const handleHistory = async () => {
+    if (histOpen) {
+      setHistOpen(false);
+      return;
+    }
+    setHistOpen(true);
+    setHistBusy(true);
+    setHistError("");
+    try {
+      setEvents(await getDocumentEvents(doc.id));
+        } catch (err) {
+      console.error("Historial:", err);
+      setHistError(`No se pudo cargar el historial: ${err?.message ?? err}`);
+    } finally {
+      setHistBusy(false);
+    }
+  };
 
   const act = async (fn, status) => {
     setBusy(true);
@@ -108,6 +131,10 @@ export default function DocumentRow({ doc, onUpdate }) {
               disabled={busy}
             />
           )}
+
+          <button className="action-btn review" disabled={busy || histBusy} onClick={handleHistory}>
+          {histOpen ? "Ocultar historial" : "Historial"}
+          </button>
 
           {canDownload && (
             <button className="action-btn review" disabled={busy} onClick={handleDownload}>
@@ -198,6 +225,30 @@ export default function DocumentRow({ doc, onUpdate }) {
                 Cerrar
               </button>
             )}
+          </td>
+        </tr>
+      )}
+        {histOpen && (
+        <tr>
+          <td colSpan={6} style={{ background: "#f0f9ff", borderLeft: "4px solid #0284c7" }}>
+            <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 6 }}>
+              Historial: {doc.original_filename}
+            </div>
+            {histBusy && <div className="loading-state" style={{ padding: 12 }}>Cargando...</div>}
+            {histError && <div className="msg-error">{histError}</div>}
+            {!histBusy && !histError && events.length === 0 && (
+              <div style={{ fontSize: 13 }}>Sin eventos registrados.</div>
+            )}
+            {events.map((e, i) => (
+              <div key={e.id ?? i} style={{ fontSize: 13, padding: "4px 0", borderBottom: "1px solid #e0f2fe" }}>
+                <strong>{e.previous_status ? `${e.previous_status} → ${e.new_status}` : e.new_status}</strong>
+                {" · "}
+                {e.username ?? "-"}
+                {" · "}
+                {(e.created_at ?? e.timestamp) ? new Date(e.created_at ?? e.timestamp).toLocaleString() : "-"}
+                {e.comment ? ` · "${e.comment}"` : ""}
+              </div>
+            ))}
           </td>
         </tr>
       )}

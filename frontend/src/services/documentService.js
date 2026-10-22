@@ -51,3 +51,8 @@ export async function downloadDocument(id, filename) {
   link.remove();
   window.URL.revokeObjectURL(url);
 }
+
+export const getDocumentEvents = async (id) => {
+  const { data } = await api.get(`/documents/${id}/events`);
+  return data.events;
+};
