@@ -1,7 +1,13 @@
-from pydantic_settings import BaseSettings
+from pathlib import Path
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=ENV_FILE, extra="ignore")
+
     app_name: str = "Sistema de Observabilidad Documental"
     upload_dir: str = "uploads"
 
@@ -25,9 +31,6 @@ class Settings(BaseSettings):
     ollama_timeout: float = 180.0
     reporting_service_url: str = "http://reporting-service:8001"
     reporting_timeout: float = 3.0
-
-    class Config:
-        env_file = ".env"
 
 
 settings = Settings()

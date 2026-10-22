@@ -15,6 +15,7 @@ services:
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?define KEYCLOAK_ADMIN_PASSWORD en .env}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:?define KEYCLOAK_CLIENT_SECRET en .env}
     ports:
       - "8080:8080"
     volumes:
@@ -34,7 +35,7 @@ services:
     ports:
       - "1438:1433"
     volumes:
-      - sqlserver_documental_data:/var/lib/mssql/data
+      - sqlserver_documental_data:/var/lib/mssql
     networks:
       - observabilidad-net
 
@@ -83,7 +84,7 @@ services:
     build: ./backend
     container_name: backend
     env_file:
-      - path: ./backend/.env
+      - path: ./.env
         required: false
     environment:
       DATABASE_URL_DOCUMENTAL: ${DATABASE_URL_DOCKER:?define DATABASE_URL_DOCKER en .env}
