@@ -220,6 +220,19 @@ Si tienes `sqlcmd` instalado en Windows, también sirve ejecutar cada script con
 | OpenTelemetry Collector | `localhost:4317` (gRPC), `4318` (HTTP) |
 | Prometheus | http://localhost:9090 |
 | Grafana | http://localhost:3000 |
+| Reporting service | Interno: http://reporting-service:8001 (no se publica al host; se consulta a través del backend en `/reports`) |
+
+### Reportes (`/reports`)
+
+El backend expone estas rutas, que consultan el `reporting-service` por HTTP. Solo están disponibles para el rol `admin_documental` y requieren token de Keycloak:
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/reports/stats` | Estadísticas generales de documentos |
+| GET | `/reports/documents/summary` | Resumen de documentos |
+| GET | `/reports/documents/{document_id}/trace` | Trazabilidad de un documento |
+
+Requieren haber ejecutado antes el paso 5 bis (vistas SQL y usuario `reporting_ro`). Se pueden probar desde Swagger en http://localhost:8000/docs.
 
 > Si se ejecuta el backend localmente con `uvicorn` (puerto 8000), hay que detener antes el contenedor `backend` para evitar conflicto de puertos.
 
