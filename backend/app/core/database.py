@@ -18,10 +18,3 @@ VALID_CATEGORIES = [
     "regulatorio_compliance",
     "propiedad_intelectual",
 ]
-
-VALID_CATEGORIES = [
-    "contratos_corporativo",
-    "litigioso",
-    "regulatorio_compliance",
-    "propiedad_intelectual",
-]
