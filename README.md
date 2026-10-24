@@ -189,12 +189,22 @@ También se puede ejecutar `CREATE DATABASE observabilidad_documental;` desde cu
 **5. Crear las tablas** (incluye `document_events`)
 
 ```powershell
-cd backend
-python create_tables.py
-cd ..
+docker compose exec backend python create_tables.py
 ```
 
-Requiere el entorno virtual de Python con las dependencias de `backend/requirements.txt` y `DATABASE_URL_DOCUMENTAL` en el `.env`.
+El script ya está dentro de la imagen del backend, así que no hace falta Python local.
+
+**5 bis. Crear las vistas y el usuario de solo lectura** (necesario para `reporting-service` y `/reports`)
+
+Los scripts de `database/scripts/` (`01_vista_resumen.sql`, `02_vista_estadisticas.sql`, `03_vista_trazabilidad.sql`, `04_usuario_reporting_ro.sql`) crean las vistas de reportes y el usuario `reporting_ro`. La contraseña se toma de `REPORTING_DB_PASSWORD` en el `.env`, sin editar ningún `.sql`:
+
+```powershell
+$p = (Select-String -Path .env -Pattern '^REPORTING_DB_PASSWORD=(.*)$').Matches.Groups[1].Value
+docker cp database/scripts sqlserver_documental:/tmp/scripts
+docker exec -e RPW=$p sqlserver_documental bash -c 'for f in /tmp/scripts/0*.sql; do /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -d observabilidad_documental -v REPORTING_DB_PASSWORD="$RPW" -b -i "$f" || exit 1; done'
+```
+
+Si tienes `sqlcmd` instalado en Windows, también sirve ejecutar cada script contra `localhost,1438` con `-v REPORTING_DB_PASSWORD=...`. Los scripts son repetibles: las vistas usan `CREATE OR ALTER` y el usuario `reporting_ro` se crea solo si no existe.
 
 **6. Abrir la aplicación** en http://localhost:5173 con alguno de los [usuarios de prueba](#usuarios-de-prueba).
 
@@ -367,6 +377,14 @@ G19X-TESE-EADM-215-ACADEMIC/
 │
 ├── keycloak/
 │   └── observabilidad-documental-realm.json
+├── reporting-service/   # FastAPI de solo lectura sobre las vistas SQL (puerto interno 8001)
+│
+├── database/
+│   └── scripts/
+│       ├── 01_vista_resumen.sql
+│       ├── 02_vista_estadisticas.sql
+│       ├── 03_vista_trazabilidad.sql
+│       └── 04_usuario_reporting_ro.sql
 │
 ├── observability/
 │   ├── alerts.yml
