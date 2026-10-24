@@ -132,19 +132,20 @@ export default function DocumentRow({ doc, onUpdate }) {
             />
           )}
 
-          <button className="action-btn review" disabled={busy || histBusy} onClick={handleHistory}>
-          {histOpen ? "Ocultar historial" : "Historial"}
-          </button>
-
           {canDownload && (
-            <button className="action-btn review" disabled={busy} onClick={handleDownload}>
-              Descargar
-            </button>
+            <>
+              <button className="action-btn review" disabled={busy || histBusy} onClick={handleHistory}>
+                {histOpen ? "Ocultar historial" : "Historial"}
+              </button>
+              <button className="action-btn review" disabled={busy} onClick={handleDownload}>
+                Descargar
+              </button>
+            </>
           )}
 
           {canAnalyze && (
-            <button className="action-btn review" disabled={busy || histBusy} onClick={handleHistory}>
-              {histOpen ? "Ocultar historial" : "Historial"}
+            <button className="action-btn review" disabled={busy} onClick={handleAnalyze}>
+              Analizar con IA
             </button>
           )}
 
@@ -223,7 +224,7 @@ export default function DocumentRow({ doc, onUpdate }) {
           </td>
         </tr>
       )}
-        {histOpen && (
+      {histOpen && (
         <tr>
           <td colSpan={6} style={{ background: "#f0f9ff", borderLeft: "4px solid #0284c7" }}>
             <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 6 }}>
