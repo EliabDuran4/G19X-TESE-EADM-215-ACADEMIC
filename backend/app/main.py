@@ -14,7 +14,7 @@ app.include_router(auth.router, prefix="/auth", tags=["Autenticación"])
 app.include_router(documents.router, prefix="/documents", tags=["Documentos"])
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[o.strip() for o in settings.cors_origins.split(",") if o.strip()],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

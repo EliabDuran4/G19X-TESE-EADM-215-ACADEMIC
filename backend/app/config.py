@@ -21,6 +21,7 @@ class Settings(BaseSettings):
 
     otel_exporter_otlp_endpoint: str = "http://localhost:4317"
     otel_service_name: str = "backend-documental"
+    cors_origins: str = "http://localhost:5173"
 
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-sonnet-5-5"
