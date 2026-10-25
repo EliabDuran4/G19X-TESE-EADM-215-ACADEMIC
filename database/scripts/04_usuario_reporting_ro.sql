@@ -1,9 +1,6 @@
 ﻿-- Usuario de solo lectura para reporting-service.
 -- La clave se toma de la variable sqlcmd REPORTING_DB_PASSWORD (la misma del .env).
 -- No subas la clave real al repositorio.
-USE master;
-CREATE LOGIN reporting_ro WITH PASSWORD = '<CLAVE>', CHECK_POLICY = ON;
-GO
 USE observabilidad_documental;
 IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = 'reporting_ro')
     CREATE LOGIN reporting_ro WITH PASSWORD = '$(REPORTING_DB_PASSWORD)', CHECK_POLICY = ON;
