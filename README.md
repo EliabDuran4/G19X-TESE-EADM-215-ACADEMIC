@@ -436,8 +436,8 @@ La documentación formal está en `MarkDown/`: requerimientos, propuesta técnic
 
 Estado actual: **MVP funcional**.
 
-Se realizaron pruebas funcionales QA-01 a QA-10 (autenticación, permisos por rol, flujo documental, persistencia, observabilidad, archivo, reapertura, seguridad básica, reproducibilidad local y análisis con IA). Resultados y evidencias en `MarkDown/QA.md`.
-
+Se realizaron pruebas funcionales QA-01 a QA-12 (autenticación, permisos por rol, flujo documental, persistencia, observabilidad, archivo, reapertura, seguridad básica, reproducibilidad local, IA multi-proveedor y su uso desde la interfaz). Resultados y evidencias en `MarkDown/QA.md`.
+Además, el backend cuenta con pruebas automáticas (pytest) en `backend/tests/`; se ejecutan con `python -m pytest -q` desde `backend/`.
 La implementación de CI/CD con GitHub Actions no forma parte del alcance actual.
 
 ---
