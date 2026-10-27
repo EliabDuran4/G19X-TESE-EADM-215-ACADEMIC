@@ -385,8 +385,8 @@ def decide_document(
         decided_at = datetime.utcnow()
 
         duration = (
-            (decided_at - doc.uploaded_at).total_seconds()
-            if doc.uploaded_at
+            (decided_at - doc.reviewed_at).total_seconds()
+            if doc.reviewed_at
             else None
         )
 
@@ -533,7 +533,7 @@ def analyze(
 def delete_document(
     document_id: str,
     current_user: dict = Depends(
-        require_reviewer_or_admin
+        require_role("admin_documental")
     ),
 ):
     doc, db = _find_document(document_id)

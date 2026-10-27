@@ -31,7 +31,7 @@ _transitions = meter.create_counter(
 _decision_seconds = meter.create_histogram(
     "document_decision_duration_seconds",
     unit="s",
-    description="Tiempo entre recibido y decisión final",
+    description="Tiempo entre el último revisado y la decisión final",
 )
 
 
