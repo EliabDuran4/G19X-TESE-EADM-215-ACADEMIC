@@ -853,7 +853,7 @@
         "http://127.0.0.1:8000/*"
       ],
       "webOrigins": [
-        "http://127.0.0.1:8000"
+        "http://localhost:3000", "http://localhost:8000"
       ],
       "notBefore": 0,
       "bearerOnly": false,
