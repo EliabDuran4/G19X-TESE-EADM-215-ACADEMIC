@@ -28,7 +28,7 @@ Cubre la instalación y configuración de todos los componentes del sistema (fro
 - PowerShell.
 - Editor de código (recomendado: VS Code).
 - Cuenta con acceso al repositorio de GitHub del proyecto.
-- Clave de Claude API válida, propia del titular del proyecto.
+- Clave de Claude API (opcional si se usa Ollama).
 - [POR CONFIRMAR: versión mínima de Docker / recursos de hardware recomendados]
 
 ### 4.1 Verificar requisitos instalados
@@ -188,35 +188,40 @@ Select-String -Path .gitignore -Pattern "\.env"
 ### 9.2 Variables y dónde obtener cada valor
 
 ```env
-DB_SERVER=<VALOR_CONFIGURADO>
-DB_NAME=observabilidad_documental
-DB_USER=<VALOR_CONFIGURADO>
-DB_PASSWORD=<VALOR_CONFIGURADO>
-KEYCLOAK_URL=<VALOR_CONFIGURADO>
-KEYCLOAK_REALM=<VALOR_CONFIGURADO>
-KEYCLOAK_CLIENT_ID=<VALOR_CONFIGURADO>
-JWT_SECRET=<VALOR_CONFIGURADO>
-CLAUDE_API_KEY=<VALOR_CONFIGURADO>
+KEYCLOAK_ADMIN_PASSWORD=<VALOR_CONFIGURADO>
+MSSQL_SA_PASSWORD=<VALOR_CONFIGURADO>
+GRAFANA_ADMIN_PASSWORD=<VALOR_CONFIGURADO>
+REPORTING_DB_PASSWORD=<VALOR_CONFIGURADO>
+DATABASE_URL_DOCUMENTAL=<VALOR_CONFIGURADO>
+DATABASE_URL_DOCKER=<VALOR_CONFIGURADO>
+KEYCLOAK_URL=http://localhost:8080
+KEYCLOAK_REALM=observabilidad-documental
+KEYCLOAK_CLIENT_ID=sistema-documental-app
+KEYCLOAK_CLIENT_SECRET=<VALOR_CONFIGURADO>
+CORS_ORIGINS=<VALOR_CONFIGURADO>
 OTEL_EXPORTER_OTLP_ENDPOINT=<VALOR_CONFIGURADO>
-PROMETHEUS_URL=<VALOR_CONFIGURADO>
-GRAFANA_URL=<VALOR_CONFIGURADO>
+OTEL_SERVICE_NAME=<VALOR_CONFIGURADO>
+AI_PROVIDER=ollama
+AI_FALLBACK_PROVIDER=
+ANTHROPIC_API_KEY=
+ANTHROPIC_MODEL=
+OLLAMA_URL=
+OLLAMA_MODEL=
+OLLAMA_TIMEOUT=
 ```
 
 | Variable | Dónde obtener / configurar el valor |
 |---|---|
-| `DB_SERVER` | Nombre del servicio de SQL Server en `docker-compose.yml` (si el backend corre en Docker) o host y puerto publicados por el contenedor (si el backend corre fuera de Docker). |
-| `DB_NAME` | Fijo: `observabilidad_documental`. |
-| `DB_USER` / `DB_PASSWORD` | Usuario y contraseña definidos al configurar SQL Server (sección 15.1). Deben coincidir con los usados por el contenedor de SQL Server. |
-| `KEYCLOAK_URL` | URL base con la que se abre la consola de Keycloak desde el navegador (sección 13.1). |
-| `KEYCLOAK_REALM` | Nombre exacto del Realm seleccionado o creado en la sección 13.3. |
-| `KEYCLOAK_CLIENT_ID` | Campo *Client ID* del cliente configurado en la sección 13.4. |
-| `JWT_SECRET` | Solo si el backend lo requiere en su configuración: generarlo localmente (ver 11.3). |
-| `CLAUDE_API_KEY` | Clave generada por su cuenta en la consola de Anthropic (sección 20.1). |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | Dirección del OpenTelemetry Collector: nombre del servicio del Collector en `docker-compose.yml` y el puerto OTLP configurado en su archivo de configuración. |
-| `PROMETHEUS_URL` | Nombre de servicio y puerto de Prometheus en `docker-compose.yml`. |
-| `GRAFANA_URL` | Nombre de servicio y puerto de Grafana en `docker-compose.yml`. |
-
-[POR CONFIRMAR: lista definitiva de variables que exige el proyecto; contrastar con el archivo de ejemplo o con la sección `environment` de `docker-compose.yml`]
+| `KEYCLOAK_ADMIN_PASSWORD`, `MSSQL_SA_PASSWORD`, `GRAFANA_ADMIN_PASSWORD` | Contraseñas que elija para Keycloak, SQL Server (`sa`) y Grafana. Docker Compose se detiene si falta alguna. |
+| `REPORTING_DB_PASSWORD` | Contraseña del usuario `reporting_ro`. Se usa al ejecutar `database/scripts/04_usuario_reporting_ro.sql` (paso 5 bis del README). |
+| `DATABASE_URL_DOCUMENTAL` | URL de SQLAlchemy para el backend en local (uvicorn): SQL Server publicado en `localhost`, puerto `1438`, base `observabilidad_documental`. |
+| `DATABASE_URL_DOCKER` | La misma URL para el backend dentro de Docker Compose: nombre del servicio de SQL Server y puerto interno `1433`. |
+| `KEYCLOAK_URL` | URL de Keycloak vista desde el navegador (`http://localhost:8080`). |
+| `KEYCLOAK_REALM` / `KEYCLOAK_CLIENT_ID` | Fijos: `observabilidad-documental` y `sistema-documental-app`. |
+| `KEYCLOAK_CLIENT_SECRET` | Secreto del cliente. Lo usan el backend y la importación del realm. |
+| `CORS_ORIGINS` | Orígenes permitidos del frontend, separados por coma. |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` / `OTEL_SERVICE_NAME` | Dirección OTLP del Collector y nombre del servicio en la telemetría. |
+| `AI_*`, `ANTHROPIC_*`, `OLLAMA_*` | Ver sección 19. |
 
 ### 9.3 Generar un valor secreto local (opcional)
 
@@ -227,7 +232,7 @@ GRAFANA_URL=<VALOR_CONFIGURADO>
 [Convert]::ToBase64String((1..48 | ForEach-Object { Get-Random -Maximum 256 }) -as [byte[]])
 ```
 
-3. Copiar el resultado en la variable correspondiente de `.env`.
+3. Copiar el resultado en `KEYCLOAK_CLIENT_SECRET` o en la contraseña que lo requiera.`
 4. No compartir ni publicar este valor.
 
 ### 9.4 Verificar que Docker Compose lee las variables
@@ -389,7 +394,7 @@ El sistema utiliza una única base de datos SQL Server Developer Edition denomin
 1. Abrir `docker-compose.yml` y ubicar el servicio de SQL Server.
 2. Verificar que define la aceptación de la licencia y la contraseña del usuario `sa` mediante variables de entorno, tomadas de `.env`.
 3. Verificar que el servicio publica un puerto y usa un volumen para la persistencia de datos.
-4. Colocar en `.env` los valores de `DB_SERVER`, `DB_USER` y `DB_PASSWORD` coherentes con esa configuración.
+4. Colocar en `.env` los valores de `MSSQL_SA_PASSWORD` y las URLs `DATABASE_URL_*` coherentes con esa configuración.`
 5. Iniciar el servicio:
 
 ```powershell
@@ -672,8 +677,8 @@ Visualiza las métricas mediante dashboards y gestiona alertas.
 
 **Comprobar alertas:**
 
-11. Ir a **Alerting** → **Alert rules**.
-12. Verificar que las reglas de alerta del proyecto aparecen listadas y su estado (*Normal*, *Pending* o *Firing*).
+11. Abrir Prometheus → **Alerts**.
+12. Verificar que aparecen las reglas de `observability/alerts.yml` y su estado (*Inactive*, *Pending* o *Firing*).
 13. Abrir una regla para revisar su condición y el origen de datos asociado.
 
 ### 18.5 Verificación integral de observabilidad
@@ -729,17 +734,17 @@ El backend utiliza un proveedor de IA configurable para el análisis de document
 | `OLLAMA_MODEL` | Modelo local de Ollama | `qwen2.5:3b` |
 | `OLLAMA_TIMEOUT` | Tiempo máximo de espera, en segundos | `180` |
 
-Las variables están documentadas en `backend/.env.example`.
+Las variables están documentadas en \.env.example` (raíz).`
 
 ### 19.1 Configurar la clave de Claude API
 
 1. Iniciar sesión en la consola de Anthropic con la cuenta del titular del proyecto.
 2. Ir a la sección de claves de API y crear una nueva clave.
 3. Copiar la clave en el momento de su creación.
-4. Abrir el archivo `backend/.env` y colocar la clave: `ANTHROPIC_API_KEY=<VALOR_CONFIGURADO>`.
+4. Abrir el archivo \.env` de la raíz del proyecto y colocar la clave:` `ANTHROPIC_API_KEY=<VALOR_CONFIGURADO>`.
 5. Guardar el archivo.
 6. **No** publicar la clave en el repositorio, capturas, mensajes ni documentos.
-7. Reiniciar el backend para aplicar la variable.
+7. Aplicar con \docker compose up -d backend`.`
 
 ### 19.2 Verificar que la clave está configurada (sin mostrarla)
 
@@ -791,7 +796,7 @@ docker compose exec ollama ollama pull qwen2.5:3b
 
 No debe ejecutarse junto con la opción A, porque ambas usan el puerto 11434. Si la descarga falla con el error `x509: certificate signed by unknown authority`, la red intercepta el HTTPS: usar la opción A o cambiar de red.
 
-**Activar Ollama** en `backend/.env`:
+**Activar Ollama** en `/.env(raiz)`:
 
 ```
 AI_PROVIDER=ollama
@@ -939,9 +944,9 @@ Procedimiento general de diagnóstico:
 | Error de autenticación / no permite iniciar sesión | 1. Verificar que Keycloak está en `running`. 2. Comprobar `KEYCLOAK_REALM` y `KEYCLOAK_CLIENT_ID` (13.3, 13.4). 3. Revisar *Valid redirect URIs* del Client. 4. Revisar el perfil del usuario (13.7). |
 | Error 401 en la API | 1. Cerrar sesión e iniciar de nuevo (el token pudo expirar). 2. Verificar `KEYCLOAK_URL` y `KEYCLOAK_REALM` del backend. |
 | Error 403 en la API | 1. Verificar el rol asignado al usuario (13.8). 2. Confirmar que el rol permite la operación (sección 14). |
-| Error de conexión a base de datos | 1. Verificar que SQL Server está `running`. 2. Comprobar `DB_SERVER`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`. 3. Probar la conexión con `sqlcmd` (15.2). 4. Reiniciar el backend. |
+| Error de conexión a base de datos | 1. Verificar que SQL Server está `running`. 2. Comprobar `DATABASE_URL_DOCKER` (o `DATABASE_URL_DOCUMENTAL` en local) y `MSSQL_SA_PASSWORD`. 3. Probar la conexión con `sqlcmd` (15.2). 4. Reiniciar el backend. |
 | Métricas no visibles en Grafana | 1. Comprobar Collector (19.2). 2. Comprobar Targets en Prometheus (19.3). 3. Probar el origen de datos en Grafana (19.4). 4. Verificar `OTEL_EXPORTER_OTLP_ENDPOINT`. |
-| Falla el análisis con IA | 1. Verificar `CLAUDE_API_KEY` (20.2). 2. Revisar logs del backend. 3. Confirmar conexión a Internet. |
+| Falla el análisis con IA | 1. Verificar `ANTHROPIC_API_KEY` (20.2). 2. Revisar logs del backend. 3. Confirmar conexión a Internet. |
 | Frontend no carga | 1. `docker compose ps`. 2. Revisar logs del frontend. 3. Verificar la URL y el puerto. |
 
 ## 23. Mantenimiento

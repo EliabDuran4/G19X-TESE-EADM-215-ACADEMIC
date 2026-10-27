@@ -42,6 +42,7 @@ Puede:
 - Marcar documentos como revisados.
 - Solicitar correcciones.
 - Consultar documentos aprobados/rechazados.
+- Consultar el historial de estados de un documento.
 - Volver a colocar documentos finalizados en revisión.
 
 ### Administrador documental
@@ -56,7 +57,9 @@ Puede:
 - Rechazar documentos.
 - Consultar documentos aprobados/rechazados.
 - Volver a colocar documentos finalizados en revisión.
-- Eliminar documentos según los permisos establecidos.
+- Consultar el historial de estados de un documento.
+- Consultar reportes del reporting-service (`/reports`).
+- Eliminar documentos (acción exclusiva del administrador).
 
 
 ## 4. Funcionalidades incluidas
@@ -73,12 +76,14 @@ Puede:
 - Sección de documentos Aprobados/Rechazados.
 - Descarga de documentos para Revisor/Admin.
 - Reapertura de documentos finalizados.
-- Eliminación según permisos.
+- Eliminación exclusiva del administrador.
+- Historial de estados por documento (tabla document_events, GET /documents/{id}/events).
+- reporting-service de solo lectura sobre vistas SQL (/reports, solo administrador).
 - Persistencia mediante SQL Server.
 - Instrumentación mediante OpenTelemetry.
 - OpenTelemetry Collector.
 - Métricas mediante Prometheus.
-- Dashboard y alertas mediante Grafana.
+- Dashboard mediante Grafana y alertas mediante Prometheus (observability/alerts.yml).
 - Ejecución mediante Docker Compose.
 - Integración con Claude API para análisis mediante IA.
 
@@ -109,9 +114,10 @@ El MVP utiliza:
 - SQLAlchemy — ORM.
 - OpenTelemetry — Instrumentación.
 - OpenTelemetry Collector — Procesamiento de telemetría.
-- Prometheus — Métricas.
-- Grafana — Dashboards y alertas.
-- Claude API — Análisis mediante IA.
+- Prometheus — Métricas y alertas.
+- Grafana — Dashboards.
+- reporting-service (FastAPI) — Reportes de solo lectura sobre vistas SQL.
+- Claude API / Ollama — Análisis mediante IA.
 - Docker / Docker Compose — Contenedores y ejecución.
 
 La versión actual utiliza una única base de datos SQL Server.
@@ -129,15 +135,16 @@ El MVP incluye:
 - Métricas de duración.
 - Prometheus.
 - Dashboard Grafana.
-- Alertas Grafana.
+- Alertas Prometheus (observability/alerts.yml).
+- Métricas del proceso: documentos por estado, subidas, transiciones y duración de la decisión (medida desde el último revisado).
 - Logs del backend.
 
 
 ## 8. Inteligencia Artificial
 
-El sistema incluye un módulo de análisis mediante Claude API.
+El sistema incluye un módulo de análisis con IA de proveedor configurable mediante `AI_PROVIDER` (`claude`, `ollama` o `none`) y `AI_FALLBACK_PROVIDER`. La recomendación no modifica el estado del documento y requiere validación humana.
 
-**Estado:** implementado, pendiente de prueba en vivo por disponibilidad de créditos.
+**Estado:** implementado. Ollama (modelo qwen2.5:3b) probado en front; Claude API pendiente de prueba en vivo por disponibilidad de créditos.
 
 
 ## 9. Fuera del MVP
