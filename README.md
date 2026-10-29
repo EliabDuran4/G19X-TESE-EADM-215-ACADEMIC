@@ -442,6 +442,15 @@ La implementación de CI/CD con GitHub Actions no forma parte del alcance actual
 
 ---
 
+## Pruebas
+
+Desde `backend/`, no requieren `.env` ni SQL Server (usan SQLite en memoria):
+
+```bash
+pip install -r requirements-dev.txt
+python -m pytest
+```
+
 ## Autor
 
 Eliab Azarel Duran Martinez
