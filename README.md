@@ -168,6 +168,7 @@ Copy-Item .env.example .env
 ```
 
 Completar las contraseñas y los secretos. Los valores obligatorios sin definir hacen que `docker compose` se detenga con un mensaje claro.
+Las contraseñas de SQL Server deben tener al menos 8 caracteres con mayúscula, minúscula y número. La contraseña de MSSQL_SA_PASSWORD debe coincidir con la de DATABASE_URL_DOCUMENTAL y DATABASE_URL_DOCKER.
 
 **3. Levantar los servicios**
 
