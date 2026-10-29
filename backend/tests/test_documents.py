@@ -1,5 +1,7 @@
 from app.models.document_event import DocumentEvent
+from datetime import datetime, timedelta
 
+import app.routers.documents as docs_router
 
 def test_revisor_no_puede_eliminar(client, as_role, make_doc):
     doc_id = make_doc("recibido")
@@ -33,3 +35,25 @@ def test_decision_deja_evento(client, as_role, make_doc, db):
     ev = s.query(DocumentEvent).filter_by(document_id=doc_id).one()
     assert (ev.previous_status, ev.new_status) == ("revisado", "aprobado")
     s.close()
+
+def test_admin_puede_eliminar(client, as_role, make_doc):
+    doc_id = make_doc("recibido")
+    as_role("admin_documental")
+    assert client.delete(f"/documents/{doc_id}").status_code == 200
+
+
+def test_duracion_se_mide_desde_reviewed_at(
+    client, as_role, make_doc, monkeypatch
+):
+    capturado = []
+    monkeypatch.setattr(
+        docs_router,
+        "record_decision_duration",
+        lambda *a, **k: capturado.extend(list(a) + list(k.values())),
+    )
+    make_doc("revisado", reviewed_at=datetime.utcnow() - timedelta(hours=2))
+    as_role("admin_documental")
+    r = client.post("/documents/doc-1/decide", json={"new_status": "aprobado"})
+    assert r.status_code == 200
+    duraciones = [x for x in capturado if isinstance(x, (int, float))]
+    assert duraciones and 7100 < duraciones[0] < 7300 

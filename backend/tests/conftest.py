@@ -1,3 +1,6 @@
+import os
+os.environ["DATABASE_URL_DOCUMENTAL"] = "sqlite://" 
+os.environ["OTEL_SDK_DISABLED"] = "true"
 from datetime import datetime
 
 import pytest
@@ -46,7 +49,7 @@ def as_role():
 
 @pytest.fixture()
 def make_doc(db):
-    def _make(status="recibido"):
+    def _make(status="recibido",  reviewed_at=None):
         s = db()
         doc = Document(
             id="doc-1",
@@ -56,7 +59,7 @@ def make_doc(db):
             status=status,
             uploaded_by="usuario_test",
             uploaded_at=datetime.utcnow(),
-            reviewed_at=datetime.utcnow(),
+            reviewed_at=reviewed_at or datetime.utcnow(),
         )
         s.add(doc)
         s.commit()
