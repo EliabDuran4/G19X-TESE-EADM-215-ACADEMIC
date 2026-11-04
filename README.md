@@ -179,16 +179,31 @@ docker compose ps
 
 Keycloak tarda unos 30 a 60 segundos en importar el realm la primera vez.
 
+SQL Server tarda en el primer arranque con volumen nuevo. Antes del paso 4, espera a que el log muestre «ready for client connections»:
+
+```powershell
+docker logs sqlserver_documental 2>&1 | Select-String "ready for client connections"
+```
+
+> **Una sola copia a la vez:** los servicios usan `container_name` fijo, así que no se pueden levantar dos copias del proyecto simultáneamente. Ejecuta `docker compose down` en la otra copia antes de iniciar esta.
+
+> **Memoria:** Docker necesita al menos **X GB de RAM** disponibles (SQL Server por sí solo pide 2 GB).
+
 **4. Crear la base de datos** (una sola vez)
 
 ```powershell
 docker exec -it sqlserver_documental bash -c '/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -Q "CREATE DATABASE observabilidad_documental"'
 ```
+**En PowerShell**, el comando anterior puede fallar por las comillas anidadas. Usa esta variante, que envía el SQL por stdin:
+
+```powershell
+"CREATE DATABASE observabilidad_documental;`nGO" | docker exec -i sqlserver_documental bash -c '/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C'
+```
 
 También se puede ejecutar `CREATE DATABASE observabilidad_documental;` desde cualquier cliente SQL conectado a `localhost,1438` con el usuario `sa`.
 
 **5. Crear las tablas** (incluye `document_events`)
-
+Comando `sqlcmd` del paso 4 incompatible con PowerShell (comillas anidadas): se añadió variante por stdin. El paso 5 bis ya usaba archivos `-i` y corrió sin cambios.
 ```powershell
 docker compose exec backend python create_tables.py
 ```
@@ -377,9 +392,14 @@ G19X-TESE-EADM-215-ACADEMIC/
 │   │   │   └── ai_service.py
 │   │   ├── config.py
 │   │   └── main.py
+│   ├── tests/
+│   │   ├── conftest.py
+│   │   └── test_documents.py
 │   ├── create_tables.py
 │   ├── Dockerfile
-│   └── requirements.txt
+│   ├── pytest.ini
+│   ├── requirements.txt
+│   └── requirements-dev.txt
 │
 ├── frontend/
 │   ├── src/
@@ -407,6 +427,7 @@ G19X-TESE-EADM-215-ACADEMIC/
 │   └── grafana/ (datasource y dashboard proceso_documental.json)
 │
 ├── MarkDown/            # documentación formal
+│   └── evidencias/      # bitácoras de pruebas (instalación limpia)
 ├── .env.example
 ├── .gitignore
 └── docker-compose.yml
