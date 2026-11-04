@@ -86,9 +86,10 @@ export default function Documents() {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand">Legal<span>Tech</span></div>
-        <nav>
+          <nav>
           <Link className="active" to="/documents">Dashboard</Link>
           <Link to="/archive">Documentos</Link>
+          {isAdmin && <Link to="/reports">Reportes</Link>}
         </nav>
       </aside>
 

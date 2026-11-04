@@ -4,6 +4,7 @@ import Login from "./pages/Login";
 import Documents from "./pages/Documents";
 import Archive from "./pages/Archive";
 import { isAuthenticated } from "./services/authService";
+import Reports from "./pages/Reports";
 
 function Protected({ children }) {
   return isAuthenticated() ? children : <Navigate to="/login" replace />;
@@ -19,6 +20,14 @@ export default function App() {
           element={
             <Protected>
               <Documents />
+            </Protected>
+          }
+        />
+        <Route
+          path="/reports"
+          element={
+            <Protected>
+              <Reports />
             </Protected>
           }
         />
