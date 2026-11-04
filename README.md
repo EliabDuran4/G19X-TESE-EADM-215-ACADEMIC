@@ -404,7 +404,7 @@ G19X-TESE-EADM-215-ACADEMIC/
 ├── frontend/
 │   ├── src/
 │   │   ├── components/DocumentRow.jsx
-│   │   ├── pages/ (Archive.jsx, Documents.jsx, Login.jsx)
+│   │   ├── pages/ (Archive.jsx, Documents.jsx, Login.jsx, Reports.jsx)
 │   │   ├── services/ (api.js, authService.js, documentService.js)
 │   │   └── App.jsx, main.jsx, index.css
 │   └── package.json
