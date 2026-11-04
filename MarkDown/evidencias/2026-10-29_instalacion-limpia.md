@@ -1,10 +1,12 @@
 # Bitácora de instalación desde clon limpio
 
-- **Fecha:** 2026-10-29
+- **Fecha:** 2026-10-29 (instalación limpia y pruebas); 2026-11-04 (flujo funcional de tres usuarios y correcciones del README)
 - **Commit clonado:** c31ee14
 - **Commit final probado (con correcciones):** b8f7906
+- **Commit con las correcciones del README (retro 7):** <hash del push de hoy>
 - **Entorno:** Windows, Docker Desktop, Python 3.12.10, PowerShell
 - **Método:** clon nuevo en carpeta vacía, sin copiar `.env` ni `.venv` del proyecto original.
+- **Flujo funcional (2026-11-04):** ejecutado en el repositorio de trabajo, con la BD de Docker local.
 
 ## Resultado por paso del README
 
@@ -16,7 +18,47 @@
 | 4. Crear la base | OK (tras corrección) | El comando con comillas no funciona en PowerShell |
 | 5. Crear tablas | OK | |
 | 5 bis. Vistas | OK | Misma variante PowerShell |
-| 6. Abrir la app | OK | |
+| 6. Abrir la app | OK | Flujo completo de los tres usuarios en la sección siguiente |
+
+## Flujo funcional con los tres usuarios
+
+| # | Usuario | Acción | Resultado |
+|---|---|---|---|
+| 1 | `usuariodoc1` | Iniciar sesión y subir un documento | OK (3 documentos: contratos_corporativo, litigioso, regulatorio_compliance) |
+| 2 | `usuariodoc1` | Verificar que el documento aparece en estado inicial | OK |
+| 3 | `revisordoc1` | Iniciar sesión y revisar el documento | OK |
+| 4 | `admindoc1` | Aprobar el documento | OK (los 3 quedaron en `aprobado`) |
+| 5 | `revisordoc1` / `admindoc1` | Abrir «Historial» del documento (`GET /documents/{id}/events`) | OK |
+| 6 | `admindoc1` | `GET /reports/stats` en Swagger | OK (3 documentos, 12 eventos, todos `aprobado`) |
+
+**Respuesta de `GET /reports/stats`:**
+
+~~~json
+{
+  "total_documentos": 3,
+  "total_eventos": 12,
+  "por_estado": {
+    "aprobado": 3
+  },
+  "por_categoria_estado": [
+    {
+      "Categoria": "contratos_corporativo",
+      "Estado": "aprobado",
+      "TotalDocumentos": 1
+    },
+    {
+      "Categoria": "litigioso",
+      "Estado": "aprobado",
+      "TotalDocumentos": 1
+    },
+    {
+      "Categoria": "regulatorio_compliance",
+      "Estado": "aprobado",
+      "TotalDocumentos": 1
+    }
+  ]
+}
+~~~
 
 ## Pruebas automáticas (venv nuevo, sin `.env`)
 
