@@ -3,7 +3,7 @@
 - **Fecha:** 2026-10-29 (instalación limpia y pruebas); 2026-11-04 (flujo funcional de tres usuarios y correcciones del README)
 - **Commit clonado:** c31ee14
 - **Commit final probado (con correcciones):** b8f7906
-- **Commit con las correcciones del README (retro 7):** <hash del push de hoy>
+- **Commit con las correcciones del README (retro 8):** deed906
 - **Entorno:** Windows, Docker Desktop, Python 3.12.10, PowerShell
 - **Método:** clon nuevo en carpeta vacía, sin copiar `.env` ni `.venv` del proyecto original.
 - **Flujo funcional (2026-11-04):** ejecutado en el repositorio de trabajo, con la BD de Docker local.
