@@ -17,8 +17,9 @@
 | 3. Levantar servicios | OK (tras corrección) | Falló por variable requerida vacía y por conflicto de `container_name` con otra copia del proyecto |
 | 4. Crear la base | OK (tras corrección) | El comando con comillas no funciona en PowerShell |
 | 5. Crear tablas | OK | |
-| 5 bis. Vistas | OK | Misma variante PowerShell |
+| 5 bis. Vistas | OK |
 | 6. Abrir la app | OK | Flujo completo de los tres usuarios en la sección siguiente |
+| Clonación final (2026-11-08) | Pasos 1 a 6 del README en PowerShell | OK, sin cambios |
 
 ## Flujo funcional con los tres usuarios
 
@@ -72,3 +73,12 @@
 4. SQL Server tarda en el primer arranque con volumen nuevo: se indicó esperar a "ready for client connections".
 5. Comando `sqlcmd` del paso 4 (y 5 bis) incompatible con PowerShell: se añadió variante por stdin.
 6. Requisito de memoria: se documentó la RAM necesaria para Docker.
+
+## Prueba rápida de punta a punta
+
+1. Inicia sesión y cambia la contraseña temporal en `/account`.
+2. Con `usuariodoc1`, sube un documento.
+3. Con `revisordoc1`, revisa el documento.
+4. Con `admindoc1`, apruébalo.
+5. Consulta el historial del documento.
+6. Abre «Reportes» y verifica que carguen los datos.

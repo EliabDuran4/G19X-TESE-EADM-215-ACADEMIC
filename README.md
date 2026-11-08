@@ -187,7 +187,7 @@ docker logs sqlserver_documental 2>&1 | Select-String "ready for client connecti
 
 > **Una sola copia a la vez:** los servicios usan `container_name` fijo, así que no se pueden levantar dos copias del proyecto simultáneamente. Ejecuta `docker compose down` en la otra copia antes de iniciar esta.
 
-> **Memoria:** Docker necesita al menos **X GB de RAM** disponibles (SQL Server por sí solo pide 2 GB).
+> **Memoria:** Docker necesita al menos **1006 GB de RAM** disponibles (SQL Server por sí solo pide 2 GB).
 
 **4. Crear la base de datos** (una sola vez)
 
@@ -203,7 +203,6 @@ docker exec -it sqlserver_documental bash -c '/opt/mssql-tools18/bin/sqlcmd -S l
 También se puede ejecutar `CREATE DATABASE observabilidad_documental;` desde cualquier cliente SQL conectado a `localhost,1438` con el usuario `sa`.
 
 **5. Crear las tablas** (incluye `document_events`)
-Comando `sqlcmd` del paso 4 incompatible con PowerShell (comillas anidadas): se añadió variante por stdin. El paso 5 bis ya usaba archivos `-i` y corrió sin cambios.
 ```powershell
 docker compose exec backend python create_tables.py
 ```

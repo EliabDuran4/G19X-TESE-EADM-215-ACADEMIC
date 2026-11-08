@@ -119,6 +119,7 @@ export default function Archive() {
         <nav>
           <Link to="/documents">Dashboard</Link>
           <Link className="active" to="/archive">Documentos</Link>
+          {isAdmin && <Link to="/reports">Reportes</Link>}
         </nav>
       </aside>
 

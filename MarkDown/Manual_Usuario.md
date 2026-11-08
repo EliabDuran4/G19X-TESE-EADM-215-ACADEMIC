@@ -214,6 +214,14 @@ Tras iniciar sesión, el usuario visualiza el listado de documentos correspondie
 3. Elegir la vista de **Aprobados** o **Rechazados** según lo que desea consultar.
 4. Seleccionar un documento para ver su detalle.
 
+### Consultar Reportes
+
+1. Iniciar sesión con un usuario admin.
+2. Seleccionar **Reportes** en la barra lateral (disponible solo para el rol admin).
+3. Revisar los totales de documentos por estado y por categoría.
+
+**Mensaje de servicio no disponible:** significa que la pantalla no pudo comunicarse con el servicio de reportes (`reporting-service`) o con su base de datos. No indica un error en sus documentos. Espere unos minutos y vuelva a abrir **Reportes**; si el mensaje continúa, avise al equipo técnico.
+
 ### Volver a revisión
 
 1. Acceder a la sección de documentos finalizados (Aprobados/Rechazados).

@@ -1,0 +1,7 @@
+services:
+  backend:
+    environment:
+      DATABASE_URL_DOCUMENTAL: mssql+pyodbc://sa:Sistema2026@192.168.56.10:1433/observabilidad_documental?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes
+  reporting-service:
+    environment:
+      DATABASE_URL_REPORTING: mssql+pyodbc://reporting_ro:Observabilidad123@192.168.56.10:1433/observabilidad_documental?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes
